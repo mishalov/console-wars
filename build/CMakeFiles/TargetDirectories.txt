@@ -1,0 +1,3 @@
+/Users/I569839/console-wars/build/CMakeFiles/console-wars.dir
+/Users/I569839/console-wars/build/CMakeFiles/edit_cache.dir
+/Users/I569839/console-wars/build/CMakeFiles/rebuild_cache.dir

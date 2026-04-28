@@ -1,0 +1,50 @@
+[
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/main.cpp.o -c /Users/I569839/console-wars/src/main.cpp",
+  "file": "/Users/I569839/console-wars/src/main.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/main.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/server.cpp.o -c /Users/I569839/console-wars/src/server.cpp",
+  "file": "/Users/I569839/console-wars/src/server.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/server.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/session.cpp.o -c /Users/I569839/console-wars/src/session.cpp",
+  "file": "/Users/I569839/console-wars/src/session.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/session.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/game_state.cpp.o -c /Users/I569839/console-wars/src/game_state.cpp",
+  "file": "/Users/I569839/console-wars/src/game_state.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/game_state.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/pudge.cpp.o -c /Users/I569839/console-wars/src/pudge.cpp",
+  "file": "/Users/I569839/console-wars/src/pudge.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/pudge.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/hook.cpp.o -c /Users/I569839/console-wars/src/hook.cpp",
+  "file": "/Users/I569839/console-wars/src/hook.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/hook.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/renderer.cpp.o -c /Users/I569839/console-wars/src/renderer.cpp",
+  "file": "/Users/I569839/console-wars/src/renderer.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/renderer.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/input.cpp.o -c /Users/I569839/console-wars/src/input.cpp",
+  "file": "/Users/I569839/console-wars/src/input.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/input.cpp.o"
+}
+]
