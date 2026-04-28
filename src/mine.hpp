@@ -12,4 +12,5 @@ struct Mine {
     int explosion_timer = -1;   // -1 means not exploding; counts down from MINE_EXPLOSION_TICKS
     bool active = true;
     bool being_hooked = false;
+    PlayerId hooked_by = INVALID_PLAYER;  // pudge currently dragging this mine via hook
 };

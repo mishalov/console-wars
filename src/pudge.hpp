@@ -16,6 +16,7 @@ struct Pudge {
     int mine_cooldown = 0;
     int mine_cooldown_max = 30;
     int respawn_timer = -1;     // -1 = not respawning; counts down to 0
+    bool is_bot = false;
 
     Vec2 desired_position(Direction dir) const;
     void tick();

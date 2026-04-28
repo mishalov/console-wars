@@ -1,0 +1,116 @@
+```
+   ___                       _        _    _
+  / __\___  _ __  ___  ___  | | ___  | |  | | __ _ _ __ ___
+ / /  / _ \| '_ \/ __|/ _ \ | |/ _ \ | |  | |/ _` | '__/ __|
+/ /__| (_) | | | \__ \ (_) || |  __/ | |/\| | (_| | |  \__ \
+\____/\___/|_| |_|___/\___/ |_|\___|  \__/\__/\__,_|_|  |___/
+```
+
+A terminal-based multiplayer arena game inspired by Pudge Wars (DotA).
+Players connect over telnet -- no client installation required. The server
+owns all game state and streams ANSI frames to each connected terminal at 15 Hz.
+
+## Quick Start
+
+**Build:**
+
+```sh
+mkdir -p build && cd build && cmake .. && make -j$(nproc)
+```
+
+On macOS, replace `nproc` with `sysctl -n hw.ncpu`:
+
+```sh
+mkdir -p build && cd build && cmake .. && make -j$(sysctl -n hw.ncpu)
+```
+
+**Run the server:**
+
+```sh
+./build/console-wars       # default port 7777
+./build/console-wars 9000  # custom port
+```
+
+**Connect:**
+
+```sh
+telnet localhost 7777
+```
+
+> You need a telnet client installed. On macOS: `brew install telnet`.
+
+## How It Works
+
+Each player is a **pudge** rendered as `@@` in a unique color on a 40x20 map.
+Up to 16 players can join simultaneously.
+
+The core loop: **place mines, then hook enemies into them.**
+
+- **Hooks** fire in a cardinal direction, extending 1 tile per tick up to range
+  10. A hook that hits a player drags them back to the caster. A hook that hits
+  a mine grabs it and drags it back -- ownership transfers to the caster.
+  ~1-second cooldown after each use.
+
+- **Mines** render as `<>`. They explode when any enemy enters the surrounding
+  3x3 area (Chebyshev distance <= 1). Instant kill. You are immune to your own
+  mines. Max 3 active per player, 2-second cooldown between placements.
+
+- **Scoring** comes from mine kills only. Hooks are the setup tool -- they
+  reposition enemies (or stolen mines) to create kills. K/D is tracked in the
+  HUD.
+
+- **Respawn** takes 3 seconds, placing you at a random unoccupied point away
+  from any mines.
+
+## Controls
+
+| Key(s)         | Action                        |
+|----------------|-------------------------------|
+| `W A S D`      | Move (up / left / down / right) |
+| Arrow keys     | Move (alternate)              |
+| `I J K L`      | Hook (up / left / down / right) |
+| `Space`        | Plant mine                    |
+| `Q`            | Quit                          |
+
+## HUD
+
+The in-game HUD displays:
+
+- Player name and color
+- Kill / Death count
+- Hook status and cooldown
+- Mine slots remaining and cooldown timer
+- Controls reference
+
+## Requirements
+
+- C++17 compiler (GCC, Clang, or Apple Clang)
+- CMake 3.16+
+- POSIX-compatible OS (macOS or Linux)
+
+No external libraries. The server uses raw POSIX sockets and `poll()` for I/O
+multiplexing, and ANSI escape codes for rendering.
+
+## Project Structure
+
+```
+console-wars/
+  CMakeLists.txt
+  maps/default.txt            40x20 game map
+  src/
+    main.cpp                  Entry point, argument parsing
+    server.hpp/cpp            TCP listener, poll() event loop
+    session.hpp/cpp           Per-player connection lifecycle
+    game_state.hpp/cpp        Tick loop, collision, game rules
+    pudge.hpp/cpp             Player entity and state
+    hook.hpp/cpp              Hook state machine
+    mine.hpp                  Mine entity
+    score.hpp                 Kill/death tracking
+    renderer.hpp/cpp          ANSI frame generation
+    input.hpp/cpp             Raw terminal input parsing
+    types.hpp                 Shared types (Vec2, enums)
+```
+
+## License
+
+This project does not currently include a license file.

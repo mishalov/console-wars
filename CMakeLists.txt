@@ -14,6 +14,11 @@ add_executable(console-wars
     src/hook.cpp
     src/renderer.cpp
     src/input.cpp
+    src/bot/bot_player.cpp
+    src/bot/bot_observation.cpp
+    src/bot/bot_reward.cpp
+    src/bot/neural_net.cpp
+    src/bot/dqn_brain.cpp
 )
 
 target_include_directories(console-wars PRIVATE src)

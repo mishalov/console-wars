@@ -86,12 +86,13 @@ Vec2 GameState::next_spawn_point() {
     return kSpawnPoints[next_id_ % kNumSpawnPoints];
 }
 
-PlayerId GameState::add_pudge(Vec2 spawn_pos) {
+PlayerId GameState::add_pudge(Vec2 spawn_pos, bool is_bot) {
     Pudge p;
     p.id = next_id_++;
     p.pos = spawn_pos;
     p.facing = Direction::Right;
     p.alive = true;
+    p.is_bot = is_bot;
     pudges_.push_back(p);
     std::cout << "Pudge " << p.id << " spawned at (" << spawn_pos.x << "," << spawn_pos.y << ")\n";
     return p.id;
@@ -222,6 +223,7 @@ void GameState::tick() {
                             if (mine.pos == new_head) {
                                 p.hook.hooked_mine_id = mine.id;
                                 mine.being_hooked = true;
+                                mine.hooked_by = p.id;
                                 p.hook.start_retract();
                                 hit_target = true;
                                 break;
@@ -281,6 +283,7 @@ void GameState::tick() {
                             // Transfer ownership
                             hooked_mine->owner_id = p.id;
                             hooked_mine->being_hooked = false;
+                            hooked_mine->hooked_by = INVALID_PLAYER;
                         } else {
                             hooked_mine->pos = p.hook.head;
                         }
@@ -306,7 +309,7 @@ void GameState::tick() {
         }
     }
 
-    // Mine proximity checks and explosions
+    // Runs AFTER hook retraction so hooked mines are at updated positions
     check_mine_proximity();
     update_mine_explosions();
 
@@ -344,6 +347,7 @@ void GameState::place_mine(PlayerId owner_id, Vec2 pos) {
     m.pos = pos;
     m.active = true;
     m.being_hooked = false;
+    m.hooked_by = INVALID_PLAYER;
     m.explosion_timer = -1;
     mines_.push_back(m);
 }
@@ -374,11 +378,14 @@ void GameState::check_mine_proximity() {
     for (auto& mine : mines_) {
         if (!mine.active) continue;
         if (mine.explosion_timer >= 0) continue;  // already detonating
-        if (mine.being_hooked) continue;
+
+        // Determine immunity and kill attribution based on hook state
+        PlayerId immune_id = mine.being_hooked ? mine.hooked_by : mine.owner_id;
+        PlayerId killer_id = mine.being_hooked ? mine.hooked_by : mine.owner_id;
 
         for (auto& pudge : pudges_) {
             if (!pudge.alive) continue;
-            if (pudge.id == mine.owner_id) continue;
+            if (pudge.id == immune_id) continue;
 
             // Chebyshev distance <= 1
             int dx = std::abs(pudge.pos.x - mine.pos.x);
@@ -386,7 +393,19 @@ void GameState::check_mine_proximity() {
             if (dx <= 1 && dy <= 1) {
                 // Detonate
                 mine.explosion_timer = MINE_EXPLOSION_TICKS;
-                kill_pudge(pudge.id, mine.owner_id);
+
+                // If this mine was being hooked, detach it from the hook
+                if (mine.being_hooked) {
+                    Pudge* hooker = get_pudge(mine.hooked_by);
+                    if (hooker) {
+                        hooker->hook.hooked_mine_id = -1;
+                    }
+                    mine.being_hooked = false;
+                    mine.hooked_by = INVALID_PLAYER;
+                }
+
+                kill_pudge(pudge.id, killer_id);
+                break;  // mine consumed, no multi-kills
             }
         }
     }
@@ -426,6 +445,7 @@ void GameState::kill_pudge(PlayerId victim_id, PlayerId killer_id) {
         for (auto& m : mines_) {
             if (m.id == victim->hook.hooked_mine_id) {
                 m.being_hooked = false;
+                m.hooked_by = INVALID_PLAYER;
                 break;
             }
         }

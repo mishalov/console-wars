@@ -15,7 +15,7 @@ public:
     TileType tile_at(int x, int y) const;
 
     // Pudge management
-    PlayerId add_pudge(Vec2 spawn_pos);
+    PlayerId add_pudge(Vec2 spawn_pos, bool is_bot = false);
     void remove_pudge(PlayerId id);
     Pudge* get_pudge(PlayerId id);
     const std::vector<Pudge>& pudges() const;

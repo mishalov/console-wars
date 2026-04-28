@@ -8,6 +8,7 @@
 #include <iostream>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -50,7 +51,8 @@ bool Server::create_listen_socket(int port) {
     return true;
 }
 
-bool Server::init(int port, const std::string& base_dir) {
+bool Server::init(int port, const std::string& base_dir, int num_bots) {
+    base_dir_ = base_dir;
     std::string map_path = base_dir + "/maps/default.txt";
     if (!state_.load_map(map_path)) {
         return false;
@@ -58,6 +60,23 @@ bool Server::init(int port, const std::string& base_dir) {
     if (!create_listen_socket(port)) {
         return false;
     }
+
+    // Spawn bot players
+    std::string data_dir = base_dir + "/data";
+    if (num_bots > 0) {
+        if (mkdir(data_dir.c_str(), 0755) != 0 && errno != EEXIST) {
+            std::cerr << "Warning: cannot create data directory '"
+                      << data_dir << "': " << strerror(errno)
+                      << " — bot brain persistence disabled\n";
+        }
+    }
+    for (int i = 0; i < num_bots; ++i) {
+        Vec2 spawn = state_.next_spawn_point();
+        PlayerId pid = state_.add_pudge(spawn, /*is_bot=*/true);
+        bots_.emplace_back(pid, data_dir);
+        std::cout << "Bot spawned (player=" << pid << ")\n";
+    }
+
     std::cout << "Server listening on port " << port << "\n";
     return true;
 }
@@ -123,14 +142,14 @@ void Server::disconnect(Session& s) {
     s.connected = false;
 }
 
-void Server::run() {
+void Server::run(volatile sig_atomic_t& shutdown_flag) {
     std::vector<struct pollfd> pollfds;
 
     static constexpr size_t MAX_OUT_BUF = 256 * 1024;  // 256KB
     constexpr auto TICK_INTERVAL = std::chrono::milliseconds(66);
     auto last_tick = std::chrono::steady_clock::now();
 
-    while (true) {
+    while (!shutdown_flag) {
         pollfds.clear();
 
         // Slot 0: listening socket
@@ -209,8 +228,18 @@ void Server::run() {
                 sessions_.end()
             );
 
+            // Bot decisions (before tick)
+            for (auto& bot : bots_) {
+                bot.pre_tick(state_);
+            }
+
             // Tick game state
             state_.tick();
+
+            // Bot learning (after tick)
+            for (auto& bot : bots_) {
+                bot.post_tick(state_);
+            }
 
             // Render and send frame to each client (per-player view)
             for (auto& s : sessions_) {
@@ -229,5 +258,11 @@ void Server::run() {
                 sessions_.end()
             );
         }
+    }
+}
+
+void Server::save_bots() const {
+    for (const auto& bot : bots_) {
+        bot.save();
     }
 }

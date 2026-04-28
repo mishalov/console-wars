@@ -136,6 +136,7 @@ void Renderer::append_hud(std::string& buf, const GameState& state, PlayerId vie
             "\x1b[%d;1H\x1b[KPlayers: %d | Spectating",
             hud_row, player_count);
         buf.append(seq, static_cast<size_t>(n));
+        append_roster(buf, state, viewer_id, hud_row + 2);
         return;
     }
 
@@ -150,6 +151,7 @@ void Renderer::append_hud(std::string& buf, const GameState& state, PlayerId vie
         // Clear second line
         int n2 = std::snprintf(seq, sizeof(seq), "\x1b[%d;1H\x1b[K", hud_row + 1);
         buf.append(seq, static_cast<size_t>(n2));
+        append_roster(buf, state, viewer_id, hud_row + 3);
         return;
     }
 
@@ -208,6 +210,55 @@ void Renderer::append_hud(std::string& buf, const GameState& state, PlayerId vie
     n = std::snprintf(seq, sizeof(seq),
         "\x1b[%d;1H\x1b[KMines: %s | Mine CD: %s",
         hud_row + 1, mine_slots, mine_cd_str);
+    buf.append(seq, static_cast<size_t>(n));
+
+    // --- Line 3: Controls ---
+    n = std::snprintf(seq, sizeof(seq),
+        "\x1b[%d;1H\x1b[K\x1b[90mWASD:move  IJKL:hook  SPACE:mine  Q:quit\x1b[0m",
+        hud_row + 2);
+    buf.append(seq, static_cast<size_t>(n));
+
+    // Clear gap line between controls and roster
+    n = std::snprintf(seq, sizeof(seq), "\x1b[%d;1H\x1b[K", hud_row + 3);
+    buf.append(seq, static_cast<size_t>(n));
+
+    // --- Roster below controls ---
+    append_roster(buf, state, viewer_id, hud_row + 4);
+}
+
+void Renderer::append_roster(std::string& buf, const GameState& state, PlayerId viewer_id, int start_row) const {
+    char seq[192];
+
+    // Header
+    int n = std::snprintf(seq, sizeof(seq),
+        "\x1b[%d;1H\x1b[K\x1b[1;97m--- Players ---\x1b[0m", start_row);
+    buf.append(seq, static_cast<size_t>(n));
+
+    int row = start_row + 1;
+    for (const auto& pudge : state.pudges()) {
+        int color = kPudgeColors[pudge.id % kNumColors];
+        const char* color_name = kColorNames[pudge.id % kNumColors];
+        const char* type_label = pudge.is_bot ? "Bot" : "Player";
+        bool is_viewer = (pudge.id == viewer_id);
+
+        // Format: @@ ColorName  Type (You)  K:X D:Y
+        if (is_viewer) {
+            n = std::snprintf(seq, sizeof(seq),
+                "\x1b[%d;1H\x1b[K \x1b[38;5;%dm@@\x1b[0m %-8s %-6s \x1b[1;97m(You)\x1b[0m  K:%d D:%d",
+                row, color, color_name, type_label,
+                pudge.score.kills, pudge.score.deaths);
+        } else {
+            n = std::snprintf(seq, sizeof(seq),
+                "\x1b[%d;1H\x1b[K \x1b[38;5;%dm@@\x1b[0m %-8s %-6s        K:%d D:%d",
+                row, color, color_name, type_label,
+                pudge.score.kills, pudge.score.deaths);
+        }
+        buf.append(seq, static_cast<size_t>(n));
+        ++row;
+    }
+
+    // Clear next line to remove stale entries from disconnected players
+    n = std::snprintf(seq, sizeof(seq), "\x1b[%d;1H\x1b[K", row);
     buf.append(seq, static_cast<size_t>(n));
 }
 

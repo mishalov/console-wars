@@ -782,6 +782,13 @@ CMakeFiles/console-wars.dir/src/main.cpp.o: \
   /Users/I569839/console-wars/src/input.hpp \
   /Users/I569839/console-wars/src/renderer.hpp \
   /Users/I569839/console-wars/src/session.hpp \
+  /Users/I569839/console-wars/src/bot/bot_player.hpp \
+  /Users/I569839/console-wars/src/bot/bot_brain.hpp \
+  /Users/I569839/console-wars/src/bot/bot_observation.hpp \
+  /Users/I569839/console-wars/src/bot/../types.hpp \
+  /Users/I569839/console-wars/src/bot/../input.hpp \
+  /Users/I569839/console-wars/src/bot/bot_reward.hpp \
+  /Users/I569839/console-wars/src/bot/../game_state.hpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/csignal \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/signal.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/iostream \

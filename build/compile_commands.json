@@ -46,5 +46,35 @@
   "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/input.cpp.o -c /Users/I569839/console-wars/src/input.cpp",
   "file": "/Users/I569839/console-wars/src/input.cpp",
   "output": "CMakeFiles/console-wars.dir/src/input.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o -c /Users/I569839/console-wars/src/bot/bot_player.cpp",
+  "file": "/Users/I569839/console-wars/src/bot/bot_player.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o -c /Users/I569839/console-wars/src/bot/bot_observation.cpp",
+  "file": "/Users/I569839/console-wars/src/bot/bot_observation.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o -c /Users/I569839/console-wars/src/bot/bot_reward.cpp",
+  "file": "/Users/I569839/console-wars/src/bot/bot_reward.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o -c /Users/I569839/console-wars/src/bot/neural_net.cpp",
+  "file": "/Users/I569839/console-wars/src/bot/neural_net.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o"
+},
+{
+  "directory": "/Users/I569839/console-wars/build",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o -c /Users/I569839/console-wars/src/bot/dqn_brain.cpp",
+  "file": "/Users/I569839/console-wars/src/bot/dqn_brain.cpp",
+  "output": "CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o"
 }
 ]

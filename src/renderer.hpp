@@ -15,4 +15,5 @@ private:
     void append_hooks(std::string& buf, const GameState& state) const;
     void append_pudges(std::string& buf, const GameState& state) const;
     void append_hud(std::string& buf, const GameState& state, PlayerId viewer_id) const;
+    void append_roster(std::string& buf, const GameState& state, PlayerId viewer_id, int start_row) const;
 };

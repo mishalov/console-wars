@@ -184,6 +184,76 @@ CMakeFiles/console-wars.dir/src/input.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/console-wars.dir/src/input.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/I569839/console-wars/src/input.cpp -o CMakeFiles/console-wars.dir/src/input.cpp.s
 
+CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o: CMakeFiles/console-wars.dir/flags.make
+CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o: /Users/I569839/console-wars/src/bot/bot_player.cpp
+CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o: CMakeFiles/console-wars.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o -MF CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o.d -o CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o -c /Users/I569839/console-wars/src/bot/bot_player.cpp
+
+CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/I569839/console-wars/src/bot/bot_player.cpp > CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.i
+
+CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/I569839/console-wars/src/bot/bot_player.cpp -o CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.s
+
+CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o: CMakeFiles/console-wars.dir/flags.make
+CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o: /Users/I569839/console-wars/src/bot/bot_observation.cpp
+CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o: CMakeFiles/console-wars.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o -MF CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o.d -o CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o -c /Users/I569839/console-wars/src/bot/bot_observation.cpp
+
+CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/I569839/console-wars/src/bot/bot_observation.cpp > CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.i
+
+CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/I569839/console-wars/src/bot/bot_observation.cpp -o CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.s
+
+CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o: CMakeFiles/console-wars.dir/flags.make
+CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o: /Users/I569839/console-wars/src/bot/bot_reward.cpp
+CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o: CMakeFiles/console-wars.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o -MF CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o.d -o CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o -c /Users/I569839/console-wars/src/bot/bot_reward.cpp
+
+CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/I569839/console-wars/src/bot/bot_reward.cpp > CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.i
+
+CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/I569839/console-wars/src/bot/bot_reward.cpp -o CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.s
+
+CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o: CMakeFiles/console-wars.dir/flags.make
+CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o: /Users/I569839/console-wars/src/bot/neural_net.cpp
+CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o: CMakeFiles/console-wars.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o -MF CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o.d -o CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o -c /Users/I569839/console-wars/src/bot/neural_net.cpp
+
+CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/I569839/console-wars/src/bot/neural_net.cpp > CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.i
+
+CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/I569839/console-wars/src/bot/neural_net.cpp -o CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.s
+
+CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o: CMakeFiles/console-wars.dir/flags.make
+CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o: /Users/I569839/console-wars/src/bot/dqn_brain.cpp
+CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o: CMakeFiles/console-wars.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o -MF CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o.d -o CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o -c /Users/I569839/console-wars/src/bot/dqn_brain.cpp
+
+CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/I569839/console-wars/src/bot/dqn_brain.cpp > CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.i
+
+CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/I569839/console-wars/src/bot/dqn_brain.cpp -o CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.s
+
 # Object files for target console-wars
 console__wars_OBJECTS = \
 "CMakeFiles/console-wars.dir/src/main.cpp.o" \
@@ -193,7 +263,12 @@ console__wars_OBJECTS = \
 "CMakeFiles/console-wars.dir/src/pudge.cpp.o" \
 "CMakeFiles/console-wars.dir/src/hook.cpp.o" \
 "CMakeFiles/console-wars.dir/src/renderer.cpp.o" \
-"CMakeFiles/console-wars.dir/src/input.cpp.o"
+"CMakeFiles/console-wars.dir/src/input.cpp.o" \
+"CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o" \
+"CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o" \
+"CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o" \
+"CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o" \
+"CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o"
 
 # External object files for target console-wars
 console__wars_EXTERNAL_OBJECTS =
@@ -206,9 +281,14 @@ console-wars: CMakeFiles/console-wars.dir/src/pudge.cpp.o
 console-wars: CMakeFiles/console-wars.dir/src/hook.cpp.o
 console-wars: CMakeFiles/console-wars.dir/src/renderer.cpp.o
 console-wars: CMakeFiles/console-wars.dir/src/input.cpp.o
+console-wars: CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o
+console-wars: CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o
+console-wars: CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o
+console-wars: CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o
+console-wars: CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o
 console-wars: CMakeFiles/console-wars.dir/build.make
 console-wars: CMakeFiles/console-wars.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable console-wars"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/I569839/console-wars/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Linking CXX executable console-wars"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/console-wars.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

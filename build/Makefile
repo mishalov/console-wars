@@ -129,6 +129,126 @@ console-wars/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/build
 .PHONY : console-wars/fast
 
+src/bot/bot_observation.o: src/bot/bot_observation.cpp.o
+.PHONY : src/bot/bot_observation.o
+
+# target to build an object file
+src/bot/bot_observation.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o
+.PHONY : src/bot/bot_observation.cpp.o
+
+src/bot/bot_observation.i: src/bot/bot_observation.cpp.i
+.PHONY : src/bot/bot_observation.i
+
+# target to preprocess a source file
+src/bot/bot_observation.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.i
+.PHONY : src/bot/bot_observation.cpp.i
+
+src/bot/bot_observation.s: src/bot/bot_observation.cpp.s
+.PHONY : src/bot/bot_observation.s
+
+# target to generate assembly for a file
+src/bot/bot_observation.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.s
+.PHONY : src/bot/bot_observation.cpp.s
+
+src/bot/bot_player.o: src/bot/bot_player.cpp.o
+.PHONY : src/bot/bot_player.o
+
+# target to build an object file
+src/bot/bot_player.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o
+.PHONY : src/bot/bot_player.cpp.o
+
+src/bot/bot_player.i: src/bot/bot_player.cpp.i
+.PHONY : src/bot/bot_player.i
+
+# target to preprocess a source file
+src/bot/bot_player.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.i
+.PHONY : src/bot/bot_player.cpp.i
+
+src/bot/bot_player.s: src/bot/bot_player.cpp.s
+.PHONY : src/bot/bot_player.s
+
+# target to generate assembly for a file
+src/bot/bot_player.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.s
+.PHONY : src/bot/bot_player.cpp.s
+
+src/bot/bot_reward.o: src/bot/bot_reward.cpp.o
+.PHONY : src/bot/bot_reward.o
+
+# target to build an object file
+src/bot/bot_reward.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o
+.PHONY : src/bot/bot_reward.cpp.o
+
+src/bot/bot_reward.i: src/bot/bot_reward.cpp.i
+.PHONY : src/bot/bot_reward.i
+
+# target to preprocess a source file
+src/bot/bot_reward.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.i
+.PHONY : src/bot/bot_reward.cpp.i
+
+src/bot/bot_reward.s: src/bot/bot_reward.cpp.s
+.PHONY : src/bot/bot_reward.s
+
+# target to generate assembly for a file
+src/bot/bot_reward.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.s
+.PHONY : src/bot/bot_reward.cpp.s
+
+src/bot/dqn_brain.o: src/bot/dqn_brain.cpp.o
+.PHONY : src/bot/dqn_brain.o
+
+# target to build an object file
+src/bot/dqn_brain.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o
+.PHONY : src/bot/dqn_brain.cpp.o
+
+src/bot/dqn_brain.i: src/bot/dqn_brain.cpp.i
+.PHONY : src/bot/dqn_brain.i
+
+# target to preprocess a source file
+src/bot/dqn_brain.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.i
+.PHONY : src/bot/dqn_brain.cpp.i
+
+src/bot/dqn_brain.s: src/bot/dqn_brain.cpp.s
+.PHONY : src/bot/dqn_brain.s
+
+# target to generate assembly for a file
+src/bot/dqn_brain.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.s
+.PHONY : src/bot/dqn_brain.cpp.s
+
+src/bot/neural_net.o: src/bot/neural_net.cpp.o
+.PHONY : src/bot/neural_net.o
+
+# target to build an object file
+src/bot/neural_net.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o
+.PHONY : src/bot/neural_net.cpp.o
+
+src/bot/neural_net.i: src/bot/neural_net.cpp.i
+.PHONY : src/bot/neural_net.i
+
+# target to preprocess a source file
+src/bot/neural_net.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.i
+.PHONY : src/bot/neural_net.cpp.i
+
+src/bot/neural_net.s: src/bot/neural_net.cpp.s
+.PHONY : src/bot/neural_net.s
+
+# target to generate assembly for a file
+src/bot/neural_net.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/console-wars.dir/build.make CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.s
+.PHONY : src/bot/neural_net.cpp.s
+
 src/game_state.o: src/game_state.cpp.o
 .PHONY : src/game_state.o
 
@@ -330,6 +450,21 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... console-wars"
+	@echo "... src/bot/bot_observation.o"
+	@echo "... src/bot/bot_observation.i"
+	@echo "... src/bot/bot_observation.s"
+	@echo "... src/bot/bot_player.o"
+	@echo "... src/bot/bot_player.i"
+	@echo "... src/bot/bot_player.s"
+	@echo "... src/bot/bot_reward.o"
+	@echo "... src/bot/bot_reward.i"
+	@echo "... src/bot/bot_reward.s"
+	@echo "... src/bot/dqn_brain.o"
+	@echo "... src/bot/dqn_brain.i"
+	@echo "... src/bot/dqn_brain.s"
+	@echo "... src/bot/neural_net.o"
+	@echo "... src/bot/neural_net.i"
+	@echo "... src/bot/neural_net.s"
 	@echo "... src/game_state.o"
 	@echo "... src/game_state.i"
 	@echo "... src/game_state.s"
