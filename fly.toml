@@ -1,5 +1,6 @@
 # Fly.io configuration for Console Wars TCP game server
-# Raw TCP service on external port 2323 -> internal port 7777
+# Raw TCP service: external port 2323 -> internal port 7777
+# Requires dedicated IPv4: fly ips allocate-v4 -a console-wars
 app = "console-wars"
 primary_region = "fra"
 
@@ -17,12 +18,10 @@ primary_region = "fra"
   source = "game_data"
   destination = "/app/data"
 
-[restart]
+[[restart]]
   policy = "always"
   max_retries = 5
 
-# TCP service: external port 2323 -> app port 7777
-# No handlers = raw TCP pass-through (no TLS termination, no HTTP processing)
 [[services]]
   internal_port = 7777
   protocol = "tcp"
@@ -32,7 +31,6 @@ primary_region = "fra"
 
   [[services.ports]]
     port = 2323
-    # No handlers = raw TCP forwarding
 
   [[services.tcp_checks]]
     grace_period = "30s"
