@@ -7,6 +7,7 @@
 #include "../input.hpp"
 #include "../types.hpp"
 
+#include <deque>
 #include <memory>
 #include <string>
 #include <vector>
@@ -49,6 +50,26 @@ private:
     InputAction                last_action_ = InputAction::None;
     bool                       has_prev_    = false;
     bool                       was_dead_    = false;
+
+    // Velocity tracking: previous tick positions for observation deltas
+    Vec2                       prev_self_pos_{};
+    Vec2                       prev_enemy_pos_{};
+    PlayerId                   prev_enemy_id_ = INVALID_PLAYER;
+
+    // N-step return accumulation
+    struct PendingStep {
+        BotObservation obs;
+        InputAction action = InputAction::None;
+        float reward = 0.0f;
+    };
+    std::deque<PendingStep> nstep_buffer_;
+    static constexpr int   kNSteps = 5;
+    static constexpr float kGamma  = 0.99f;  // must match DqnBrain::kGamma
+
+    /// Flush the oldest n-step transition from the buffer.
+    void flush_nstep_transition(const BotObservation& next_obs);
+    /// Flush all remaining n-step transitions (called at episode end).
+    void flush_all_nstep(const BotObservation& terminal_obs);
 
     /// Build the list of actions the bot is allowed to take right now.
     std::vector<InputAction> get_valid_actions(const GameState& state) const;

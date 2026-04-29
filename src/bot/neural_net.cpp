@@ -36,6 +36,12 @@ NeuralNet::NeuralNet(std::vector<int> layer_sizes)
         p.weights.resize(static_cast<std::size_t>(p.fan_out) *
                          static_cast<std::size_t>(p.fan_in));
         p.biases.assign(static_cast<std::size_t>(p.fan_out), 0.0f);
+
+        // Zero-initialize Adam optimizer state
+        p.m_weights.assign(p.weights.size(), 0.0f);
+        p.m_biases.assign(p.biases.size(), 0.0f);
+        p.v_weights.assign(p.weights.size(), 0.0f);
+        p.v_biases.assign(p.biases.size(), 0.0f);
     }
 
     init_weights();
@@ -227,19 +233,36 @@ void NeuralNet::backprop(const std::vector<float>& input,
         clip_coeff = kMaxNorm / global_norm;
     }
 
-    // ------ Parameter update (SGD) ----------------------------------------
+    // ------ Parameter update (Adam) -----------------------------------------
+
+    ++adam_t_;
+    constexpr float beta1 = 0.9f;
+    constexpr float beta2 = 0.999f;
+    constexpr float eps   = 1e-8f;
+
+    float bc1 = 1.0f - std::pow(beta1, static_cast<float>(adam_t_));
+    float bc2 = 1.0f - std::pow(beta2, static_cast<float>(adam_t_));
 
     for (std::size_t li = 0; li < num_connections; ++li) {
         auto& p = params_[li];
         const auto& g = grads[li];
-        const auto w_sz = p.weights.size();
-        const auto b_sz = p.biases.size();
 
-        for (std::size_t i = 0; i < w_sz; ++i) {
-            p.weights[i] -= learning_rate * clip_coeff * g.dw[i];
+        for (std::size_t i = 0; i < p.weights.size(); ++i) {
+            float grad = clip_coeff * g.dw[i];
+            p.m_weights[i] = beta1 * p.m_weights[i] + (1.0f - beta1) * grad;
+            p.v_weights[i] = beta2 * p.v_weights[i] + (1.0f - beta2) * grad * grad;
+            float m_hat = p.m_weights[i] / bc1;
+            float v_hat = p.v_weights[i] / bc2;
+            p.weights[i] -= learning_rate * m_hat / (std::sqrt(v_hat) + eps);
         }
-        for (std::size_t i = 0; i < b_sz; ++i) {
-            p.biases[i] -= learning_rate * clip_coeff * g.db[i];
+
+        for (std::size_t i = 0; i < p.biases.size(); ++i) {
+            float grad = clip_coeff * g.db[i];
+            p.m_biases[i] = beta1 * p.m_biases[i] + (1.0f - beta1) * grad;
+            p.v_biases[i] = beta2 * p.v_biases[i] + (1.0f - beta2) * grad * grad;
+            float m_hat = p.m_biases[i] / bc1;
+            float v_hat = p.v_biases[i] / bc2;
+            p.biases[i] -= learning_rate * m_hat / (std::sqrt(v_hat) + eps);
         }
     }
 }
@@ -258,6 +281,26 @@ void NeuralNet::copy_weights_from(const NeuralNet& other)
         params_[i].weights = other.params_[i].weights;
         params_[i].biases  = other.params_[i].biases;
     }
+    // Copy Adam timestep (for serialisation consistency) but NOT the moment
+    // vectors -- the target network does not train.
+    adam_t_ = other.adam_t_;
+}
+
+void NeuralNet::soft_update(const NeuralNet& source, float tau)
+{
+    if (layer_sizes_ != source.layer_sizes_) {
+        throw std::invalid_argument("soft_update: topology mismatch");
+    }
+    for (std::size_t i = 0; i < params_.size(); ++i) {
+        for (std::size_t j = 0; j < params_[i].weights.size(); ++j) {
+            params_[i].weights[j] = tau * source.params_[i].weights[j]
+                                  + (1.0f - tau) * params_[i].weights[j];
+        }
+        for (std::size_t j = 0; j < params_[i].biases.size(); ++j) {
+            params_[i].biases[j] = tau * source.params_[i].biases[j]
+                                 + (1.0f - tau) * params_[i].biases[j];
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -274,13 +317,25 @@ void NeuralNet::save(std::ostream& os) const
         os.write(reinterpret_cast<const char*>(&val), sizeof(val));
     }
 
-    // Write weights and biases for each connection.
+    // Write weights, biases, and Adam state for each connection.
     for (const auto& p : params_) {
         os.write(reinterpret_cast<const char*>(p.weights.data()),
                  static_cast<std::streamsize>(p.weights.size() * sizeof(float)));
         os.write(reinterpret_cast<const char*>(p.biases.data()),
                  static_cast<std::streamsize>(p.biases.size() * sizeof(float)));
+        os.write(reinterpret_cast<const char*>(p.m_weights.data()),
+                 static_cast<std::streamsize>(p.m_weights.size() * sizeof(float)));
+        os.write(reinterpret_cast<const char*>(p.m_biases.data()),
+                 static_cast<std::streamsize>(p.m_biases.size() * sizeof(float)));
+        os.write(reinterpret_cast<const char*>(p.v_weights.data()),
+                 static_cast<std::streamsize>(p.v_weights.size() * sizeof(float)));
+        os.write(reinterpret_cast<const char*>(p.v_biases.data()),
+                 static_cast<std::streamsize>(p.v_biases.size() * sizeof(float)));
     }
+
+    // Write Adam timestep.
+    auto adam_t_val = static_cast<int32_t>(adam_t_);
+    os.write(reinterpret_cast<const char*>(&adam_t_val), sizeof(adam_t_val));
 }
 
 void NeuralNet::load(std::istream& is)
@@ -301,13 +356,26 @@ void NeuralNet::load(std::istream& is)
             "NeuralNet::load: saved topology does not match current topology");
     }
 
-    // Read weights and biases.
+    // Read weights, biases, and Adam state.
     for (auto& p : params_) {
         is.read(reinterpret_cast<char*>(p.weights.data()),
                 static_cast<std::streamsize>(p.weights.size() * sizeof(float)));
         is.read(reinterpret_cast<char*>(p.biases.data()),
                 static_cast<std::streamsize>(p.biases.size() * sizeof(float)));
+        is.read(reinterpret_cast<char*>(p.m_weights.data()),
+                static_cast<std::streamsize>(p.m_weights.size() * sizeof(float)));
+        is.read(reinterpret_cast<char*>(p.m_biases.data()),
+                static_cast<std::streamsize>(p.m_biases.size() * sizeof(float)));
+        is.read(reinterpret_cast<char*>(p.v_weights.data()),
+                static_cast<std::streamsize>(p.v_weights.size() * sizeof(float)));
+        is.read(reinterpret_cast<char*>(p.v_biases.data()),
+                static_cast<std::streamsize>(p.v_biases.size() * sizeof(float)));
     }
+
+    // Read Adam timestep.
+    int32_t adam_t_val = 0;
+    is.read(reinterpret_cast<char*>(&adam_t_val), sizeof(adam_t_val));
+    adam_t_ = static_cast<int>(adam_t_val);
 
     if (!is) {
         throw std::runtime_error("NeuralNet::load: stream error during read");

@@ -42,16 +42,24 @@ void BotPlayer::pre_tick(GameState& state)
 
     if (!self || !self->alive) {
         has_prev_ = false;
+        prev_self_pos_  = {};
+        prev_enemy_pos_ = {};
+        prev_enemy_id_  = INVALID_PLAYER;
         return;  // dead or not yet spawned -- nothing to do
     }
 
-    // Observe.
-    BotObservation curr_obs = observe(state, id_);
+    // Observe (pass previous positions and enemy ID for velocity features).
+    BotObservation curr_obs = observe(state, id_, prev_self_pos_, prev_enemy_pos_, prev_enemy_id_);
 
-    // If we have a previous observation, compute the reward and feed it back.
+    // If we have a previous observation, compute the reward and accumulate
+    // in the n-step buffer.
     if (has_prev_) {
         float reward = compute_reward(prev_obs_, curr_obs);
-        brain_->on_outcome(prev_obs_, last_action_, curr_obs, reward);
+        nstep_buffer_.push_back({prev_obs_, last_action_, reward});
+
+        if (static_cast<int>(nstep_buffer_.size()) >= kNSteps) {
+            flush_nstep_transition(curr_obs);
+        }
     }
 
     // Decide.
@@ -60,6 +68,20 @@ void BotPlayer::pre_tick(GameState& state)
 
     // Inject the action into the game state.
     state.handle_input(id_, action);
+
+    // Update stored positions and enemy ID for next tick's velocity calculation.
+    prev_self_pos_ = self->pos;
+    prev_enemy_id_ = curr_obs.nearest_enemy_id;
+    {
+        const Pudge* nearest_enemy = nullptr;
+        int best_dist = INT_MAX;
+        for (const auto& p : state.pudges()) {
+            if (p.id == id_ || !p.alive) continue;
+            int d = std::abs(p.pos.x - self->pos.x) + std::abs(p.pos.y - self->pos.y);
+            if (d < best_dist) { best_dist = d; nearest_enemy = &p; }
+        }
+        prev_enemy_pos_ = nearest_enemy ? nearest_enemy->pos : Vec2{0, 0};
+    }
 
     // Book-keeping for next tick.
     prev_obs_    = curr_obs;
@@ -84,15 +106,26 @@ void BotPlayer::post_tick(const GameState& state)
     // Detect death transition: was alive (has_prev_ implies alive on prev
     // tick), and now dead.
     if (has_prev_ && currently_dead) {
-        // Feed a terminal transition to the brain before signalling game end.
-        BotObservation terminal_obs = prev_obs_;
-        terminal_obs.alive = false;
-        terminal_obs.features[BotObservation::kAlive] = 0.0f;
+        // Get the actual death-state observation instead of faking it.
+        BotObservation terminal_obs = observe(state, id_);
+        if (terminal_obs.pos == Vec2{0,0} && !terminal_obs.alive) {
+            // Pudge was removed from state, use prev obs as fallback
+            terminal_obs = prev_obs_;
+            terminal_obs.alive = false;
+            terminal_obs.features[BotObservation::kAlive] = 0.0f;
+        }
         float reward = compute_reward(prev_obs_, terminal_obs);
-        brain_->on_outcome(prev_obs_, last_action_, terminal_obs, reward);
+
+        // Add the terminal step and flush all remaining n-step transitions
+        nstep_buffer_.push_back({prev_obs_, last_action_, reward});
+        flush_all_nstep(terminal_obs);
 
         brain_->on_game_end();
         has_prev_ = false;
+        nstep_buffer_.clear();
+        prev_self_pos_  = {};
+        prev_enemy_pos_ = {};
+        prev_enemy_id_  = INVALID_PLAYER;
 
         // Periodic auto-save after every game end
         try {
@@ -105,9 +138,50 @@ void BotPlayer::post_tick(const GameState& state)
     // Detect respawn transition: was dead, now alive.
     if (was_dead_ && !currently_dead) {
         has_prev_ = false;  // fresh episode
+        nstep_buffer_.clear();
+        prev_self_pos_  = {};
+        prev_enemy_pos_ = {};
+        prev_enemy_id_  = INVALID_PLAYER;
     }
 
     was_dead_ = currently_dead;
+}
+
+// ============================================================================
+// N-step return helpers
+// ============================================================================
+
+void BotPlayer::flush_nstep_transition(const BotObservation& next_obs)
+{
+    // Compute n-step discounted return from the oldest entry.
+    float G = 0.0f;
+    float gamma_pow = 1.0f;
+    for (const auto& step : nstep_buffer_) {
+        G += gamma_pow * step.reward;
+        gamma_pow *= kGamma;
+    }
+    // The oldest transition's state is the "state"; next_obs is the "next_state".
+    // The brain will use gamma^n for the bootstrap value.
+    auto& oldest = nstep_buffer_.front();
+    brain_->on_outcome(oldest.obs, oldest.action, next_obs, G,
+                       static_cast<int>(nstep_buffer_.size()));
+    nstep_buffer_.pop_front();
+}
+
+void BotPlayer::flush_all_nstep(const BotObservation& terminal_obs)
+{
+    while (!nstep_buffer_.empty()) {
+        float G = 0.0f;
+        float gamma_pow = 1.0f;
+        for (const auto& step : nstep_buffer_) {
+            G += gamma_pow * step.reward;
+            gamma_pow *= kGamma;
+        }
+        auto& oldest = nstep_buffer_.front();
+        brain_->on_outcome(oldest.obs, oldest.action, terminal_obs, G,
+                           static_cast<int>(nstep_buffer_.size()));
+        nstep_buffer_.pop_front();
+    }
 }
 
 // ============================================================================

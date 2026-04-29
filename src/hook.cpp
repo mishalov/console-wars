@@ -36,6 +36,8 @@ void Hook::reset() {
     target_id = INVALID_PLAYER;
     hooked_mine_id = -1;
     cooldown = cooldown_max;
+    max_range = 10;
+    speed = 1;
 }
 
 void Hook::tick_cooldown() {

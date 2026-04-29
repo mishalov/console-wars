@@ -14,16 +14,16 @@
 // ============================================================================
 
 static constexpr char     kMagic[4] = {'C', 'W', 'B', 'T'};
-static constexpr uint32_t kVersion  = 1;
+static constexpr uint32_t kVersion  = 3;
 
 // ============================================================================
 // Construction
 // ============================================================================
 
 DqnBrain::DqnBrain()
-    : online_({kInputDim, 128, 64, kOutputDim})
-    , target_({kInputDim, 128, 64, kOutputDim})
-    , buffer_(50000)
+    : online_({kInputDim, 256, 128, 64, kOutputDim})
+    , target_({kInputDim, 256, 128, 64, kOutputDim})
+    , buffer_(100000)
 {
     sync_target();
 }
@@ -111,7 +111,8 @@ InputAction DqnBrain::decide(const BotObservation& obs,
 // ============================================================================
 
 void DqnBrain::on_outcome(const BotObservation& prev, InputAction action,
-                           const BotObservation& curr, float reward)
+                           const BotObservation& curr, float reward,
+                           int n_steps)
 {
     // Build a Transition.
     bot::Transition t;
@@ -120,8 +121,9 @@ void DqnBrain::on_outcome(const BotObservation& prev, InputAction action,
     t.reward     = reward;
     t.next_state.assign(curr.features.begin(), curr.features.end());
     t.done       = !curr.alive;
+    t.n_steps    = n_steps;
 
-    buffer_.add(std::move(t));
+    buffer_.add(std::move(t), std::abs(reward) + 0.01f);
     ++total_steps_;
 
     // Train every kTrainInterval steps once the buffer is warm.
@@ -133,53 +135,81 @@ void DqnBrain::on_outcome(const BotObservation& prev, InputAction action,
 }
 
 // ============================================================================
-// train_batch()  --  one Double-DQN mini-batch SGD step
+// train_batch()  --  one Double-DQN mini-batch step with n-step returns
 // ============================================================================
 
 void DqnBrain::train_batch()
 {
-    auto batch = buffer_.sample(static_cast<std::size_t>(kBatchSize));
+    // Beta annealing for importance-sampling correction.
+    float beta = kBetaStart + (kBetaEnd - kBetaStart) *
+        std::min(1.0f, static_cast<float>(train_steps_) / static_cast<float>(kBetaAnnealSteps));
 
-    for (const auto& t : batch) {
-        // --- Double DQN value estimation ---
-        // Online network selects the best next action.
+    auto batch = buffer_.sample_prioritized(
+        static_cast<std::size_t>(kBatchSize), beta);
+
+    // Pre-compute all TD targets and errors before any weight updates to avoid
+    // mid-batch weight mutation bias.
+    std::vector<float> td_targets(batch.size());
+    std::vector<float> td_errors(batch.size());
+
+    for (std::size_t i = 0; i < batch.size(); ++i) {
+        const auto& t = *batch[i].transition;
+
+        // Double DQN: online selects best next action.
         std::vector<float> online_next = online_.forward(t.next_state);
         int best_next_action = 0;
         {
             float best_val = online_next[0];
-            for (int i = 1; i < kOutputDim; ++i) {
-                if (online_next[static_cast<std::size_t>(i)] > best_val) {
-                    best_val = online_next[static_cast<std::size_t>(i)];
-                    best_next_action = i;
+            for (int a = 1; a < kOutputDim; ++a) {
+                if (online_next[static_cast<std::size_t>(a)] > best_val) {
+                    best_val = online_next[static_cast<std::size_t>(a)];
+                    best_next_action = a;
                 }
             }
         }
 
-        // Target network evaluates Q at that action.
+        // Target evaluates at that action.
         std::vector<float> target_next = target_.forward(t.next_state);
         float q_target = target_next[static_cast<std::size_t>(best_next_action)];
 
-        // TD target.
+        // N-step TD target: y = G_n + gamma^n * Q_target(s', a*)
         float y = t.reward;
         if (!t.done) {
-            y += kGamma * q_target;
+            float gamma_n = std::pow(kGamma, static_cast<float>(t.n_steps));
+            y += gamma_n * q_target;
         }
+        td_targets[i] = y;
 
-        // --- Update online network ---
-        // Forward current state to get the full Q-vector, then replace the
-        // taken action's entry with the TD target.
+        // Compute TD error for priority update.
         std::vector<float> current_q = online_.forward(t.state);
-        current_q[static_cast<std::size_t>(t.action)] = y;
+        td_errors[i] = y - current_q[static_cast<std::size_t>(t.action)];
+    }
+
+    // Apply updates with importance-sampling weights.
+    for (std::size_t i = 0; i < batch.size(); ++i) {
+        const auto& t = *batch[i].transition;
+        float is_weight = batch[i].weight;
+
+        std::vector<float> current_q = online_.forward(t.state);
+        // Scale the gradient by the IS weight:
+        // target[action] = pred + is_weight * (td_target - pred)
+        float pred = current_q[static_cast<std::size_t>(t.action)];
+        current_q[static_cast<std::size_t>(t.action)] = pred + is_weight * (td_targets[i] - pred);
 
         online_.backprop(t.state, current_q, learning_rate_);
+
+        // Update priority in the sum-tree.
+        buffer_.update_priority(batch[i].index, td_errors[i]);
     }
 
     ++train_steps_;
 
-    // Periodic target-network sync.
-    if (train_steps_ % kTargetSyncEvery == 0) {
-        sync_target();
-    }
+    // Soft target update every training step (Polyak averaging).
+    target_.soft_update(online_, kTau);
+
+    // Epsilon decay: exponential anneal based on training steps.
+    epsilon_ = std::max(kEpsilonMin,
+                        0.5f * std::exp(-static_cast<float>(train_steps_) / 15000.0f));
 }
 
 // ============================================================================
@@ -198,16 +228,6 @@ void DqnBrain::sync_target()
 void DqnBrain::on_game_end()
 {
     ++games_played_;
-
-    // Epsilon decay: linearly anneal from 1.0 to kEpsilonMin over 200
-    // "games" (note: a "game" here is one death-respawn cycle, not a full
-    // session — this means epsilon decays quickly with frequent deaths).
-    epsilon_ = std::max(kEpsilonMin,
-                        1.0f - static_cast<float>(games_played_) / 200.0f);
-
-    // Learning-rate half-life decay: halve every 150 games, floor at kLrMin.
-    learning_rate_ = std::max(kLrMin,
-        0.0005f * std::pow(0.5f, static_cast<float>(games_played_) / 150.0f));
 }
 
 // ============================================================================

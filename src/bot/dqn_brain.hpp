@@ -22,7 +22,8 @@ public:
                        const std::vector<InputAction>& valid_actions) override;
 
     void on_outcome(const BotObservation& prev, InputAction action,
-                    const BotObservation& curr, float reward) override;
+                    const BotObservation& curr, float reward,
+                    int n_steps) override;
 
     void on_game_end() override;
 
@@ -38,7 +39,7 @@ public:
 
 private:
     // --- Topology -----------------------------------------------------------
-    static constexpr int kInputDim  = BotObservation::SIZE;  // 47
+    static constexpr int kInputDim  = BotObservation::SIZE;  // 92
     static constexpr int kOutputDim = 10;                    // InputActions (excl. Quit)
 
     // --- Networks / buffer --------------------------------------------------
@@ -47,19 +48,23 @@ private:
     bot::ReplayBuffer buffer_;
 
     // --- Hyperparameters ----------------------------------------------------
-    float    epsilon_       = 1.0f;
-    float    learning_rate_ = 0.0005f;
+    float    epsilon_       = 0.5f;
+    float    learning_rate_ = 0.0003f;
     uint32_t games_played_  = 0;
     uint32_t total_steps_   = 0;
     uint32_t train_steps_   = 0;
 
-    static constexpr float    kGamma           = 0.97f;
+    static constexpr float    kGamma           = 0.99f;
     static constexpr int      kBatchSize       = 32;
-    static constexpr uint32_t kMinBufferSize   = 5000;
+    static constexpr uint32_t kMinBufferSize   = 1000;
     static constexpr uint32_t kTrainInterval   = 4;
-    static constexpr uint32_t kTargetSyncEvery = 1000;
-    static constexpr float    kEpsilonMin      = 0.05f;
-    static constexpr float    kLrMin           = 0.00005f;
+    static constexpr float    kTau             = 0.005f;
+    static constexpr float    kEpsilonMin      = 0.02f;
+
+    // PER beta annealing: IS correction grows from kBetaStart to kBetaEnd
+    static constexpr float    kBetaStart       = 0.4f;
+    static constexpr float    kBetaEnd         = 1.0f;
+    static constexpr uint32_t kBetaAnnealSteps = 100000;
 
     // --- RNG ----------------------------------------------------------------
     std::mt19937 rng_{std::random_device{}()};

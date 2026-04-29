@@ -31,6 +31,11 @@ public:
     // topology.  Used for target-network sync in DQN.
     void copy_weights_from(const NeuralNet& other);
 
+    // Polyak-averaging (soft) target update:
+    //   this = tau * source + (1 - tau) * this
+    // Used for smooth target-network updates in DQN.
+    void soft_update(const NeuralNet& source, float tau);
+
     // Binary serialisation (all weights + biases, prefixed with topology).
     void save(std::ostream& os) const;
     void load(std::istream& is);
@@ -47,8 +52,16 @@ private:
         std::vector<float> biases;   // size = out
         int fan_in  = 0;
         int fan_out = 0;
+
+        // Adam optimizer state
+        std::vector<float> m_weights;  // 1st moment (momentum)
+        std::vector<float> m_biases;
+        std::vector<float> v_weights;  // 2nd moment (RMS)
+        std::vector<float> v_biases;
     };
     std::vector<LayerParams> params_;
+
+    int adam_t_ = 0;  // Adam timestep for bias correction
 
     void init_weights();
 };

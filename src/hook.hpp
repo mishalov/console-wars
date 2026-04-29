@@ -13,6 +13,7 @@ struct Hook {
     int hooked_mine_id = -1;
     int cooldown = 0;           // ticks until can fire again
     int cooldown_max = 15;      // ~1 sec at 15Hz tick rate
+    int speed = 1;              // tiles per tick (3 for SuperHook)
 
     void fire(Direction dir, Vec2 from);
     Vec2 advance();             // move head 1 tile forward, append to chain, return new head

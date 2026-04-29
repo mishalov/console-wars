@@ -144,7 +144,34 @@ void GameState::handle_input(PlayerId id, InputAction action) {
         if (pudge->hook.state == HookState::Ready &&
             pudge->hook.cooldown == 0 &&
             !pudge->being_pulled) {
+
+            // SuperHook: boost range and speed before firing
+            if (pudge->active_bonus.type == BonusType::SuperHook &&
+                pudge->active_bonus.remaining > 0 &&
+                !pudge->active_bonus.consumed) {
+                pudge->hook.max_range = SUPER_HOOK_RANGE;
+                pudge->hook.speed = SUPER_HOOK_SPEED;
+                pudge->active_bonus.consumed = true;
+            }
+
             pudge->hook.fire(hook_dir, pudge->pos);
+
+            // MultiHook: fire extra hooks in the other 3 directions
+            if (pudge->active_bonus.type == BonusType::MultiHook &&
+                pudge->active_bonus.remaining > 0 &&
+                !pudge->active_bonus.consumed) {
+                static constexpr Direction all_dirs[] = {
+                    Direction::Up, Direction::Down, Direction::Left, Direction::Right
+                };
+                for (Direction d : all_dirs) {
+                    if (d == hook_dir) continue;
+                    ExtraHook eh;
+                    eh.owner_id = pudge->id;
+                    eh.hook.fire(d, pudge->pos);
+                    extra_hooks_.push_back(eh);
+                }
+                pudge->active_bonus.consumed = true;
+            }
         }
         return;
     }
@@ -181,6 +208,7 @@ void GameState::handle_input(PlayerId id, InputAction action) {
 void GameState::tick() {
     ++tick_count_;
     for (auto& p : pudges_) {
+        p.picked_up_bonus = false;
         p.tick();
     }
 
@@ -190,51 +218,53 @@ void GameState::tick() {
 
         switch (p.hook.state) {
             case HookState::Extending: {
-                Vec2 new_head = p.hook.advance();
+                for (int step = 0; step < p.hook.speed; ++step) {
+                    if (p.hook.state != HookState::Extending) break;
 
-                if (!is_walkable(new_head)) {
-                    // Hit a wall: remove the invalid position from chain
-                    p.hook.chain.pop_back();
-                    p.hook.head = p.hook.chain.empty() ? p.hook.origin : p.hook.chain.back();
-                    p.hook.start_retract();
-                } else {
-                    // Check if hook hit another pudge
-                    bool hit_target = false;
-                    for (auto& other : pudges_) {
-                        if (other.id == p.id) continue;
-                        if (!other.alive) continue;
-                        if (other.being_pulled) continue;
-                        if (other.pos == new_head) {
-                            p.hook.target_id = other.id;
-                            other.being_pulled = true;
-                            p.hook.start_retract();
-                            p.score.hooks_landed++;
-                            hit_target = true;
-                            break;
-                        }
-                    }
+                    Vec2 new_head = p.hook.advance();
 
-                    // Check if hook hit a mine (only if didn't hit a pudge)
-                    if (!hit_target && p.hook.state == HookState::Extending) {
-                        for (auto& mine : mines_) {
-                            if (!mine.active) continue;
-                            if (mine.explosion_timer >= 0) continue;  // already exploding
-                            if (mine.being_hooked) continue;
-                            if (mine.pos == new_head) {
-                                p.hook.hooked_mine_id = mine.id;
-                                mine.being_hooked = true;
-                                mine.hooked_by = p.id;
+                    if (!is_walkable(new_head)) {
+                        p.hook.chain.pop_back();
+                        p.hook.head = p.hook.chain.empty() ? p.hook.origin : p.hook.chain.back();
+                        p.hook.start_retract();
+                    } else {
+                        bool hit_target = false;
+                        for (auto& other : pudges_) {
+                            if (other.id == p.id) continue;
+                            if (!other.alive) continue;
+                            if (other.being_pulled) continue;
+                            if (other.active_bonus.type == BonusType::Immunity &&
+                                other.active_bonus.remaining > 0) continue;
+                            if (other.pos == new_head) {
+                                p.hook.target_id = other.id;
+                                other.being_pulled = true;
                                 p.hook.start_retract();
+                                p.score.hooks_landed++;
                                 hit_target = true;
                                 break;
                             }
                         }
-                    }
 
-                    // Check max range (only if still extending)
-                    if (!hit_target && p.hook.state == HookState::Extending) {
-                        if (static_cast<int>(p.hook.chain.size()) >= p.hook.max_range) {
-                            p.hook.start_retract();
+                        if (!hit_target && p.hook.state == HookState::Extending) {
+                            for (auto& mine : mines_) {
+                                if (!mine.active) continue;
+                                if (mine.explosion_timer >= 0) continue;
+                                if (mine.being_hooked) continue;
+                                if (mine.pos == new_head) {
+                                    p.hook.hooked_mine_id = mine.id;
+                                    mine.being_hooked = true;
+                                    mine.hooked_by = p.id;
+                                    p.hook.start_retract();
+                                    hit_target = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!hit_target && p.hook.state == HookState::Extending) {
+                            if (static_cast<int>(p.hook.chain.size()) >= p.hook.max_range) {
+                                p.hook.start_retract();
+                            }
                         }
                     }
                 }
@@ -242,19 +272,22 @@ void GameState::tick() {
             }
 
             case HookState::Retracting: {
-                bool done = p.hook.retract_tick();
+                bool done = false;
+                for (int step = 0; step < p.hook.speed; ++step) {
+                    done = p.hook.retract_tick();
+                    if (done) break;
+                }
 
                 // Handle hooked pudge
                 if (p.hook.target_id != INVALID_PLAYER) {
                     Pudge* target = get_pudge(p.hook.target_id);
                     if (target && target->alive) {
                         if (done) {
-                            // Place target adjacent to caster in hook direction
                             Vec2 adj = p.hook.origin + dir_to_vec(p.hook.direction);
                             if (is_walkable(adj) && !is_occupied(adj, target->id)) {
                                 target->pos = adj;
                             } else if (!is_occupied(p.hook.origin, target->id)) {
-                                target->pos = p.hook.origin;  // stack on caster as last resort
+                                target->pos = p.hook.origin;
                             }
                         } else {
                             target->pos = p.hook.head;
@@ -273,14 +306,12 @@ void GameState::tick() {
                     }
                     if (hooked_mine && hooked_mine->active) {
                         if (done) {
-                            // Place mine adjacent to caster
                             Vec2 adj = p.hook.origin + dir_to_vec(p.hook.direction);
                             if (is_walkable(adj)) {
                                 hooked_mine->pos = adj;
                             } else {
                                 hooked_mine->pos = p.hook.origin;
                             }
-                            // Transfer ownership
                             hooked_mine->owner_id = p.id;
                             hooked_mine->being_hooked = false;
                             hooked_mine->hooked_by = INVALID_PLAYER;
@@ -291,7 +322,6 @@ void GameState::tick() {
                 }
 
                 if (done) {
-                    // Clear being_pulled on target
                     if (p.hook.target_id != INVALID_PLAYER) {
                         Pudge* target = get_pudge(p.hook.target_id);
                         if (target) {
@@ -319,6 +349,11 @@ void GameState::tick() {
             respawn_pudge(p.id);
         }
     }
+
+    update_bonus_timers();
+    check_bonus_pickup();
+    update_bonus_spawn();
+    tick_extra_hooks();
 }
 
 uint32_t GameState::tick_count() const {
@@ -386,6 +421,8 @@ void GameState::check_mine_proximity() {
         for (auto& pudge : pudges_) {
             if (!pudge.alive) continue;
             if (pudge.id == immune_id) continue;
+            if (pudge.active_bonus.type == BonusType::Immunity &&
+                pudge.active_bonus.remaining > 0) continue;
 
             // Chebyshev distance <= 1
             int dx = std::abs(pudge.pos.x - mine.pos.x);
@@ -456,6 +493,7 @@ void GameState::kill_pudge(PlayerId victim_id, PlayerId killer_id) {
     victim->being_pulled = false;
     victim->hook = Hook{};
     victim->hook.cooldown = 0;
+    victim->active_bonus.remaining = 0;
     victim->score.deaths++;
 
     Pudge* killer = get_pudge(killer_id);
@@ -475,4 +513,222 @@ void GameState::respawn_pudge(PlayerId id) {
     p->move_cooldown = 0;
     p->mine_cooldown = 0;
     p->being_pulled = false;
+    p->active_bonus = ActiveBonus{BonusType::Immunity, RESPAWN_IMMUNITY_TICKS, false};
+}
+
+// --- Bonus system ---
+
+void GameState::update_bonus_timers() {
+    for (auto& p : pudges_) {
+        if (p.active_bonus.remaining > 0) {
+            --p.active_bonus.remaining;
+            if (p.active_bonus.remaining == 0) {
+                p.active_bonus = ActiveBonus{};
+            }
+        }
+    }
+}
+
+void GameState::check_bonus_pickup() {
+    if (!bonus_.active) return;
+    for (auto& p : pudges_) {
+        if (!p.alive) continue;
+        if (p.pos == bonus_.pos) {
+            apply_bonus(p.id, bonus_.type);
+            p.picked_up_bonus = true;
+            bonus_.active = false;
+            break;
+        }
+    }
+}
+
+void GameState::update_bonus_spawn() {
+    if (bonus_.active) return;
+    --bonus_spawn_timer_;
+    if (bonus_spawn_timer_ <= 0) {
+        auto dist_type = std::uniform_int_distribution<int>(
+            0, static_cast<int>(BonusType::Count) - 1);
+        bonus_.type = static_cast<BonusType>(dist_type(rng_));
+        bonus_.pos = random_empty_tile();
+        bonus_.active = true;
+        bonus_spawn_timer_ = BONUS_SPAWN_INTERVAL;
+    }
+}
+
+void GameState::apply_bonus(PlayerId id, BonusType type) {
+    Pudge* pudge = get_pudge(id);
+    if (!pudge) return;
+
+    if (type == BonusType::MineField) {
+        static constexpr Direction all_dirs[] = {
+            Direction::Up, Direction::Down, Direction::Left, Direction::Right
+        };
+        for (Direction d : all_dirs) {
+            Vec2 target = pudge->pos + dir_to_vec(d);
+            if (is_walkable(target)) {
+                place_mine(pudge->id, target);
+            }
+        }
+        pudge->mine_cooldown = pudge->mine_cooldown_max;
+    } else {
+        pudge->active_bonus = {type, BONUS_DURATION, false};
+    }
+}
+
+void GameState::tick_extra_hooks() {
+    for (size_t i = 0; i < extra_hooks_.size(); ) {
+        auto& eh = extra_hooks_[i];
+
+        switch (eh.hook.state) {
+            case HookState::Extending: {
+                for (int step = 0; step < eh.hook.speed; ++step) {
+                    if (eh.hook.state != HookState::Extending) break;
+
+                    Vec2 new_head = eh.hook.advance();
+
+                    if (!is_walkable(new_head)) {
+                        eh.hook.chain.pop_back();
+                        eh.hook.head = eh.hook.chain.empty() ? eh.hook.origin : eh.hook.chain.back();
+                        eh.hook.start_retract();
+                    } else {
+                        bool hit_target = false;
+                        for (auto& other : pudges_) {
+                            if (other.id == eh.owner_id) continue;
+                            if (!other.alive) continue;
+                            if (other.being_pulled) continue;
+                            if (other.active_bonus.type == BonusType::Immunity &&
+                                other.active_bonus.remaining > 0) continue;
+                            if (other.pos == new_head) {
+                                eh.hook.target_id = other.id;
+                                other.being_pulled = true;
+                                eh.hook.start_retract();
+                                Pudge* owner = get_pudge(eh.owner_id);
+                                if (owner) owner->score.hooks_landed++;
+                                hit_target = true;
+                                break;
+                            }
+                        }
+
+                        if (!hit_target && eh.hook.state == HookState::Extending) {
+                            for (auto& mine : mines_) {
+                                if (!mine.active) continue;
+                                if (mine.explosion_timer >= 0) continue;
+                                if (mine.being_hooked) continue;
+                                if (mine.pos == new_head) {
+                                    eh.hook.hooked_mine_id = mine.id;
+                                    mine.being_hooked = true;
+                                    mine.hooked_by = eh.owner_id;
+                                    eh.hook.start_retract();
+                                    hit_target = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!hit_target && eh.hook.state == HookState::Extending) {
+                            if (static_cast<int>(eh.hook.chain.size()) >= eh.hook.max_range) {
+                                eh.hook.start_retract();
+                            }
+                        }
+                    }
+                }
+                ++i;
+                break;
+            }
+
+            case HookState::Retracting: {
+                bool done = false;
+                for (int step = 0; step < eh.hook.speed; ++step) {
+                    done = eh.hook.retract_tick();
+                    if (done) break;
+                }
+
+                if (eh.hook.target_id != INVALID_PLAYER) {
+                    Pudge* target = get_pudge(eh.hook.target_id);
+                    Pudge* owner = get_pudge(eh.owner_id);
+                    if (target && target->alive && owner) {
+                        if (done) {
+                            Vec2 adj = eh.hook.origin + dir_to_vec(eh.hook.direction);
+                            if (is_walkable(adj) && !is_occupied(adj, target->id)) {
+                                target->pos = adj;
+                            } else if (!is_occupied(eh.hook.origin, target->id)) {
+                                target->pos = eh.hook.origin;
+                            }
+                        } else {
+                            target->pos = eh.hook.head;
+                        }
+                    }
+                }
+
+                if (eh.hook.hooked_mine_id >= 0) {
+                    Mine* hooked_mine = nullptr;
+                    for (auto& m : mines_) {
+                        if (m.id == eh.hook.hooked_mine_id) {
+                            hooked_mine = &m;
+                            break;
+                        }
+                    }
+                    if (hooked_mine && hooked_mine->active) {
+                        if (done) {
+                            Vec2 adj = eh.hook.origin + dir_to_vec(eh.hook.direction);
+                            if (is_walkable(adj)) {
+                                hooked_mine->pos = adj;
+                            } else {
+                                hooked_mine->pos = eh.hook.origin;
+                            }
+                            hooked_mine->owner_id = eh.owner_id;
+                            hooked_mine->being_hooked = false;
+                            hooked_mine->hooked_by = INVALID_PLAYER;
+                        } else {
+                            hooked_mine->pos = eh.hook.head;
+                        }
+                    }
+                }
+
+                if (done) {
+                    if (eh.hook.target_id != INVALID_PLAYER) {
+                        Pudge* target = get_pudge(eh.hook.target_id);
+                        if (target) target->being_pulled = false;
+                    }
+                    extra_hooks_.erase(extra_hooks_.begin() + static_cast<ptrdiff_t>(i));
+                } else {
+                    ++i;
+                }
+                break;
+            }
+
+            case HookState::Ready:
+                extra_hooks_.erase(extra_hooks_.begin() + static_cast<ptrdiff_t>(i));
+                break;
+        }
+    }
+}
+
+Vec2 GameState::random_empty_tile() {
+    auto dist_x = std::uniform_int_distribution<int>(1, width_ - 2);
+    auto dist_y = std::uniform_int_distribution<int>(1, height_ - 2);
+
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        Vec2 pos = {dist_x(rng_), dist_y(rng_)};
+        if (!is_walkable(pos)) continue;
+        if (is_occupied(pos)) continue;
+
+        bool on_mine = false;
+        for (const auto& m : mines_) {
+            if (m.active && m.pos == pos) { on_mine = true; break; }
+        }
+        if (on_mine) continue;
+
+        if (bonus_.active && bonus_.pos == pos) continue;
+
+        return pos;
+    }
+    // Deterministic fallback: scan for any walkable, unoccupied tile
+    for (int y = 1; y < height_ - 1; ++y) {
+        for (int x = 1; x < width_ - 1; ++x) {
+            Vec2 pos = {x, y};
+            if (is_walkable(pos) && !is_occupied(pos)) return pos;
+        }
+    }
+    return {width_ / 2, height_ / 2};
 }

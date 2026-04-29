@@ -2,6 +2,7 @@
 #include "types.hpp"
 #include "hook.hpp"
 #include "score.hpp"
+#include "bonus.hpp"
 
 struct Pudge {
     PlayerId id = INVALID_PLAYER;
@@ -17,6 +18,8 @@ struct Pudge {
     int mine_cooldown_max = 30;
     int respawn_timer = -1;     // -1 = not respawning; counts down to 0
     bool is_bot = false;
+    ActiveBonus active_bonus;
+    bool picked_up_bonus = false;  // transient flag, cleared each tick
 
     Vec2 desired_position(Direction dir) const;
     void tick();

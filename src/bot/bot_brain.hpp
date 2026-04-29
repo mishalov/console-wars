@@ -20,8 +20,11 @@ public:
 
     /// Called after each game tick with the previous observation, the action
     /// taken, the resulting observation, and the scalar reward.
+    /// n_steps indicates how many environment steps this compound reward spans
+    /// (used for n-step returns; defaults to 1 for standard 1-step TD).
     virtual void on_outcome(const BotObservation& prev, InputAction action,
-                            const BotObservation& curr, float reward) = 0;
+                            const BotObservation& curr, float reward,
+                            int n_steps = 1) = 0;
 
     /// Called when a round ends (the bot died and will respawn).
     virtual void on_game_end() = 0;

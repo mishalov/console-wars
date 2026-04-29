@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include "mine.hpp"
+#include "bonus.hpp"
 #include <cstdio>
 
 // ANSI 256-color palette indices for pudge colors
@@ -40,18 +41,92 @@ void Renderer::append_mines(std::string& buf, const GameState& state) const {
     }
 }
 
-void Renderer::append_pudges(std::string& buf, const GameState& state) const {
+void Renderer::append_bonus(std::string& buf, const GameState& state) const {
+    const auto& bonus = state.bonus();
+    if (!bonus.active) return;
+
+    int row = bonus.pos.y + 1;
+    int col = bonus.pos.x * 2 + 1;
+
+    const char* glyph = "??";
+    int color = 255;
+    switch (bonus.type) {
+        case BonusType::MultiHook: glyph = "++"; color = 201; break;  // magenta
+        case BonusType::Immunity:  glyph = "$$"; color = 51;  break;  // cyan
+        case BonusType::SuperHook: glyph = "!!"; color = 46;  break;  // green
+        case BonusType::MineField: glyph = "##"; color = 196; break;  // red
+        default: break;
+    }
+
+    char seq[64];
+    int n = std::snprintf(seq, sizeof(seq),
+        "\x1b[%d;%dH\x1b[5;1;38;5;%dm%s\x1b[0m", row, col, color, glyph);
+    buf.append(seq, static_cast<size_t>(n));
+}
+
+void Renderer::append_extra_hooks(std::string& buf, const GameState& state) const {
     char seq[48];
+    for (const auto& eh : state.extra_hooks()) {
+        if (eh.hook.state == HookState::Ready) continue;
+        if (eh.hook.chain.empty()) continue;
+
+        int color = kPudgeColors[eh.owner_id % kNumColors];
+
+        const char* chain_body = nullptr;
+        const char* hook_tip = nullptr;
+        switch (eh.hook.direction) {
+            case Direction::Up:    chain_body = "||"; hook_tip = "^^"; break;
+            case Direction::Down:  chain_body = "||"; hook_tip = "vv"; break;
+            case Direction::Left:  chain_body = "=="; hook_tip = "<<"; break;
+            case Direction::Right: chain_body = "=="; hook_tip = ">>"; break;
+            default:               chain_body = ".."; hook_tip = ".."; break;
+        }
+
+        for (size_t i = 0; i + 1 < eh.hook.chain.size(); ++i) {
+            Vec2 pos = eh.hook.chain[i];
+            int row = pos.y + 1;
+            int col = pos.x * 2 + 1;
+
+            int n = std::snprintf(seq, sizeof(seq), "\x1b[%d;%dH\x1b[38;5;%dm%s\x1b[0m",
+                                  row, col, color, chain_body);
+            buf.append(seq, static_cast<size_t>(n));
+        }
+
+        Vec2 tip_pos = eh.hook.chain.back();
+        int tip_row = tip_pos.y + 1;
+        int tip_col = tip_pos.x * 2 + 1;
+
+        int n = std::snprintf(seq, sizeof(seq), "\x1b[%d;%dH\x1b[1;38;5;%dm%s\x1b[0m",
+                              tip_row, tip_col, color, hook_tip);
+        buf.append(seq, static_cast<size_t>(n));
+    }
+}
+
+void Renderer::append_pudges(std::string& buf, const GameState& state) const {
+    char seq[64];
     for (const auto& pudge : state.pudges()) {
         if (!pudge.alive) continue;
 
-        // Position cursor: row = pos.y + 1, col = pos.x * 2 + 1 (1-indexed)
         int row = pudge.pos.y + 1;
         int col = pudge.pos.x * 2 + 1;
         int color = kPudgeColors[pudge.id % kNumColors];
 
-        int n = std::snprintf(seq, sizeof(seq), "\x1b[%d;%dH\x1b[38;5;%dm@@\x1b[0m",
+        int n;
+        if (pudge.active_bonus.remaining > 0) {
+            // Bonus overlay: colored background based on bonus type
+            int bg = 0;
+            switch (pudge.active_bonus.type) {
+                case BonusType::MultiHook: bg = 53;  break;  // dark magenta bg
+                case BonusType::Immunity:  bg = 24;  break;  // dark cyan bg
+                case BonusType::SuperHook: bg = 22;  break;  // dark green bg
+                default: break;
+            }
+            n = std::snprintf(seq, sizeof(seq), "\x1b[%d;%dH\x1b[38;5;%d;48;5;%dm@@\x1b[0m",
+                              row, col, color, bg);
+        } else {
+            n = std::snprintf(seq, sizeof(seq), "\x1b[%d;%dH\x1b[38;5;%dm@@\x1b[0m",
                               row, col, color);
+        }
         buf.append(seq, static_cast<size_t>(n));
     }
 }
@@ -212,18 +287,38 @@ void Renderer::append_hud(std::string& buf, const GameState& state, PlayerId vie
         hud_row + 1, mine_slots, mine_cd_str);
     buf.append(seq, static_cast<size_t>(n));
 
-    // --- Line 3: Controls ---
+    // --- Line 3: Bonus status ---
+    if (viewer->active_bonus.remaining > 0) {
+        const char* bonus_name = "";
+        int bonus_color = 255;
+        switch (viewer->active_bonus.type) {
+            case BonusType::MultiHook: bonus_name = "MULTI-HOOK"; bonus_color = 201; break;
+            case BonusType::Immunity:  bonus_name = "IMMUNITY";   bonus_color = 51;  break;
+            case BonusType::SuperHook: bonus_name = "SUPER-HOOK"; bonus_color = 46;  break;
+            default: break;
+        }
+        double bonus_sec = static_cast<double>(viewer->active_bonus.remaining) / 15.0;
+        const char* used = viewer->active_bonus.consumed ? " USED" : "";
+        n = std::snprintf(seq, sizeof(seq),
+            "\x1b[%d;1H\x1b[K\x1b[1;38;5;%dm[%s %.1fs%s]\x1b[0m",
+            hud_row + 2, bonus_color, bonus_name, bonus_sec, used);
+    } else {
+        n = std::snprintf(seq, sizeof(seq), "\x1b[%d;1H\x1b[K", hud_row + 2);
+    }
+    buf.append(seq, static_cast<size_t>(n));
+
+    // --- Line 4: Controls ---
     n = std::snprintf(seq, sizeof(seq),
         "\x1b[%d;1H\x1b[K\x1b[90mWASD:move  IJKL:hook  SPACE:mine  Q:quit\x1b[0m",
-        hud_row + 2);
+        hud_row + 3);
     buf.append(seq, static_cast<size_t>(n));
 
     // Clear gap line between controls and roster
-    n = std::snprintf(seq, sizeof(seq), "\x1b[%d;1H\x1b[K", hud_row + 3);
+    n = std::snprintf(seq, sizeof(seq), "\x1b[%d;1H\x1b[K", hud_row + 4);
     buf.append(seq, static_cast<size_t>(n));
 
     // --- Roster below controls ---
-    append_roster(buf, state, viewer_id, hud_row + 4);
+    append_roster(buf, state, viewer_id, hud_row + 5);
 }
 
 void Renderer::append_roster(std::string& buf, const GameState& state, PlayerId viewer_id, int start_row) const {
@@ -283,9 +378,11 @@ std::string Renderer::render_full(const GameState& state, PlayerId viewer_id) co
         buf.append("\r\n");
     }
 
-    // Order: tiles -> hooks -> mines -> pudges -> HUD
+    // Order: tiles -> hooks -> extra_hooks -> mines -> bonus -> pudges -> HUD
     append_hooks(buf, state);
+    append_extra_hooks(buf, state);
     append_mines(buf, state);
+    append_bonus(buf, state);
     append_pudges(buf, state);
     append_hud(buf, state, viewer_id);
 

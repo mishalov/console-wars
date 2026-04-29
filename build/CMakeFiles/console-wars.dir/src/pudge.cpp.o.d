@@ -775,4 +775,5 @@ CMakeFiles/console-wars.dir/src/pudge.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/wstring_convert.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/cstdarg \
   /Users/I569839/console-wars/src/hook.hpp \
-  /Users/I569839/console-wars/src/score.hpp
+  /Users/I569839/console-wars/src/score.hpp \
+  /Users/I569839/console-wars/src/bonus.hpp
