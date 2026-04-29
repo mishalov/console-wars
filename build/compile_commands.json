@@ -1,79 +1,79 @@
 [
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/main.cpp.o -c /Users/I569839/console-wars/src/main.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/main.cpp.o -c /Users/I569839/console-wars/src/main.cpp",
   "file": "/Users/I569839/console-wars/src/main.cpp",
   "output": "CMakeFiles/console-wars.dir/src/main.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/server.cpp.o -c /Users/I569839/console-wars/src/server.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/server.cpp.o -c /Users/I569839/console-wars/src/server.cpp",
   "file": "/Users/I569839/console-wars/src/server.cpp",
   "output": "CMakeFiles/console-wars.dir/src/server.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/session.cpp.o -c /Users/I569839/console-wars/src/session.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/session.cpp.o -c /Users/I569839/console-wars/src/session.cpp",
   "file": "/Users/I569839/console-wars/src/session.cpp",
   "output": "CMakeFiles/console-wars.dir/src/session.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/game_state.cpp.o -c /Users/I569839/console-wars/src/game_state.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/game_state.cpp.o -c /Users/I569839/console-wars/src/game_state.cpp",
   "file": "/Users/I569839/console-wars/src/game_state.cpp",
   "output": "CMakeFiles/console-wars.dir/src/game_state.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/pudge.cpp.o -c /Users/I569839/console-wars/src/pudge.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/pudge.cpp.o -c /Users/I569839/console-wars/src/pudge.cpp",
   "file": "/Users/I569839/console-wars/src/pudge.cpp",
   "output": "CMakeFiles/console-wars.dir/src/pudge.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/hook.cpp.o -c /Users/I569839/console-wars/src/hook.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/hook.cpp.o -c /Users/I569839/console-wars/src/hook.cpp",
   "file": "/Users/I569839/console-wars/src/hook.cpp",
   "output": "CMakeFiles/console-wars.dir/src/hook.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/renderer.cpp.o -c /Users/I569839/console-wars/src/renderer.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/renderer.cpp.o -c /Users/I569839/console-wars/src/renderer.cpp",
   "file": "/Users/I569839/console-wars/src/renderer.cpp",
   "output": "CMakeFiles/console-wars.dir/src/renderer.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/input.cpp.o -c /Users/I569839/console-wars/src/input.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/input.cpp.o -c /Users/I569839/console-wars/src/input.cpp",
   "file": "/Users/I569839/console-wars/src/input.cpp",
   "output": "CMakeFiles/console-wars.dir/src/input.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o -c /Users/I569839/console-wars/src/bot/bot_player.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o -c /Users/I569839/console-wars/src/bot/bot_player.cpp",
   "file": "/Users/I569839/console-wars/src/bot/bot_player.cpp",
   "output": "CMakeFiles/console-wars.dir/src/bot/bot_player.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o -c /Users/I569839/console-wars/src/bot/bot_observation.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o -c /Users/I569839/console-wars/src/bot/bot_observation.cpp",
   "file": "/Users/I569839/console-wars/src/bot/bot_observation.cpp",
   "output": "CMakeFiles/console-wars.dir/src/bot/bot_observation.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o -c /Users/I569839/console-wars/src/bot/bot_reward.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o -c /Users/I569839/console-wars/src/bot/bot_reward.cpp",
   "file": "/Users/I569839/console-wars/src/bot/bot_reward.cpp",
   "output": "CMakeFiles/console-wars.dir/src/bot/bot_reward.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o -c /Users/I569839/console-wars/src/bot/neural_net.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o -c /Users/I569839/console-wars/src/bot/neural_net.cpp",
   "file": "/Users/I569839/console-wars/src/bot/neural_net.cpp",
   "output": "CMakeFiles/console-wars.dir/src/bot/neural_net.cpp.o"
 },
 {
   "directory": "/Users/I569839/console-wars/build",
-  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -g -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o -c /Users/I569839/console-wars/src/bot/dqn_brain.cpp",
+  "command": "/usr/bin/c++  -I/Users/I569839/console-wars/src -O3 -DNDEBUG -std=gnu++17 -arch arm64 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -o CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o -c /Users/I569839/console-wars/src/bot/dqn_brain.cpp",
   "file": "/Users/I569839/console-wars/src/bot/dqn_brain.cpp",
   "output": "CMakeFiles/console-wars.dir/src/bot/dqn_brain.cpp.o"
 }

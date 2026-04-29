@@ -1,10 +1,18 @@
 #include "server.hpp"
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string>
 #include <libgen.h>
+
+#ifdef __SSE__
+#include <xmmintrin.h>
+#endif
+#ifdef __SSE3__
+#include <pmmintrin.h>
+#endif
 
 static volatile sig_atomic_t g_shutdown = 0;
 
@@ -23,16 +31,35 @@ static std::string exe_dir(const char* argv0) {
 }
 
 int main(int argc, char* argv[]) {
+    // Flush subnormal floats to zero — prevents progressive performance
+    // degradation from Adam optimizer's second-moment estimates decaying
+    // into subnormal range after hours of training.
+#ifdef __SSE__
+    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+#endif
+#ifdef __SSE3__
+    _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+#endif
+#ifdef __aarch64__
+    uint64_t fpcr;
+    asm volatile("mrs %0, fpcr" : "=r"(fpcr));
+    fpcr |= (1 << 24);  // FZ bit
+    asm volatile("msr fpcr, %0" : : "r"(fpcr));
+#endif
+
     signal(SIGPIPE, SIG_IGN);
 
     int port = 7777;
     int num_bots = 0;
+    bool no_train = false;
 
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--bot") == 0) {
             num_bots = 1;
         } else if (std::strcmp(argv[i], "--bots") == 0 && i + 1 < argc) {
             num_bots = std::atoi(argv[++i]);
+        } else if (std::strcmp(argv[i], "--no-train") == 0) {
+            no_train = true;
         } else {
             // First positional argument is port
             port = std::atoi(argv[i]);
@@ -46,7 +73,7 @@ int main(int argc, char* argv[]) {
 
     signal(SIGINT, handle_sigint);
 
-    if (!server.init(port, base_dir, num_bots)) {
+    if (!server.init(port, base_dir, num_bots, no_train)) {
         std::cerr << "Failed to initialize server\n";
         return 1;
     }

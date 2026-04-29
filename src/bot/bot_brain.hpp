@@ -3,6 +3,7 @@
 #include "bot_observation.hpp"
 #include "../input.hpp"
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -31,6 +32,9 @@ public:
 
     /// Persist learned weights / state to the given path.
     virtual void save(const std::string& path) const = 0;
+
+    /// Persist learned weights / state to an output stream.
+    virtual void save(std::ostream& os) const = 0;
 
     /// Restore learned weights / state from the given path.
     virtual void load(const std::string& path) = 0;

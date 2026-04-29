@@ -51,7 +51,7 @@ bool Server::create_listen_socket(int port) {
     return true;
 }
 
-bool Server::init(int port, const std::string& base_dir, int num_bots) {
+bool Server::init(int port, const std::string& base_dir, int num_bots, bool no_train) {
     base_dir_ = base_dir;
     std::string map_path = base_dir + "/maps/default.txt";
     if (!state_.load_map(map_path)) {
@@ -73,8 +73,14 @@ bool Server::init(int port, const std::string& base_dir, int num_bots) {
     for (int i = 0; i < num_bots; ++i) {
         Vec2 spawn = state_.next_spawn_point();
         PlayerId pid = state_.add_pudge(spawn, /*is_bot=*/true);
-        bots_.emplace_back(pid, data_dir);
-        std::cout << "Bot spawned (player=" << pid << ")\n";
+        try {
+            bots_.push_back(std::make_unique<BotPlayer>(pid, data_dir, no_train));
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << "\n";
+            return false;
+        }
+        std::cout << "Bot spawned (player=" << pid
+                  << (no_train ? ", inference-only" : "") << ")\n";
     }
 
     std::cout << "Server listening on port " << port << "\n";
@@ -230,7 +236,7 @@ void Server::run(volatile sig_atomic_t& shutdown_flag) {
 
             // Bot decisions (before tick)
             for (auto& bot : bots_) {
-                bot.pre_tick(state_);
+                bot->pre_tick(state_);
             }
 
             // Tick game state
@@ -238,7 +244,7 @@ void Server::run(volatile sig_atomic_t& shutdown_flag) {
 
             // Bot learning (after tick)
             for (auto& bot : bots_) {
-                bot.post_tick(state_);
+                bot->post_tick(state_);
             }
 
             // Render and send frame to each client (per-player view)
@@ -263,6 +269,6 @@ void Server::run(volatile sig_atomic_t& shutdown_flag) {
 
 void Server::save_bots() const {
     for (const auto& bot : bots_) {
-        bot.save();
+        bot->save();
     }
 }

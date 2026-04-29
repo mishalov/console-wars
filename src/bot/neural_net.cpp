@@ -45,6 +45,7 @@ NeuralNet::NeuralNet(std::vector<int> layer_sizes)
     }
 
     init_weights();
+    allocate_workspace();
 }
 
 void NeuralNet::init_weights()
@@ -64,50 +65,147 @@ void NeuralNet::init_weights()
     }
 }
 
-// ---------------------------------------------------------------------------
-// Forward pass
-// ---------------------------------------------------------------------------
-
-std::vector<float> NeuralNet::forward(const std::vector<float>& input) const
+void NeuralNet::allocate_workspace()
 {
-    assert(static_cast<int>(input.size()) == layer_sizes_.front());
+    // Find maximum layer dimension for alternating buffers.
+    int max_dim = 0;
+    for (auto s : layer_sizes_) {
+        max_dim = std::max(max_dim, s);
+    }
+    ws_buf_a_.resize(static_cast<std::size_t>(max_dim));
+    ws_buf_b_.resize(static_cast<std::size_t>(max_dim));
 
-    // Current activation vector -- starts as the input.
-    std::vector<float> act = input;
+    // Pre-allocate activation cache (one vector per layer).
+    const auto num_layers = layer_sizes_.size();
+    ws_activations_.resize(num_layers);
+    for (std::size_t i = 0; i < num_layers; ++i) {
+        ws_activations_[i].resize(static_cast<std::size_t>(layer_sizes_[i]));
+    }
 
-    const auto num_layers = params_.size();
-    for (std::size_t li = 0; li < num_layers; ++li) {
+    // Pre-allocate pre-activation cache (one vector per connection).
+    const auto num_conn = num_layers - 1;
+    ws_pre_acts_.resize(num_conn);
+    for (std::size_t i = 0; i < num_conn; ++i) {
+        ws_pre_acts_[i].resize(static_cast<std::size_t>(layer_sizes_[i + 1]));
+    }
+
+    // Pre-allocate backprop workspace.
+    const auto num_connections = params_.size();
+    bp_pre_acts_.resize(num_connections);
+    for (std::size_t i = 0; i < num_connections; ++i) {
+        bp_pre_acts_[i].resize(static_cast<std::size_t>(params_[i].fan_out));
+    }
+
+    bp_delta_.resize(static_cast<std::size_t>(max_dim));
+    bp_prev_delta_.resize(static_cast<std::size_t>(max_dim));
+
+    bp_grads_.resize(num_connections);
+    for (std::size_t i = 0; i < num_connections; ++i) {
+        bp_grads_[i].dw.resize(params_[i].weights.size());
+        bp_grads_[i].db.resize(params_[i].biases.size());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Forward pass (internal implementation)
+// ---------------------------------------------------------------------------
+
+void NeuralNet::forward_impl(const float* input, int input_size, bool cache_activations) const
+{
+    assert(input_size == layer_sizes_.front());
+
+    const auto num_connections = params_.size();
+
+    // Copy input into workspace buffer A.
+    std::memcpy(ws_buf_a_.data(), input, static_cast<std::size_t>(input_size) * sizeof(float));
+
+    // Cache input activations if requested.
+    if (cache_activations) {
+        std::memcpy(ws_activations_[0].data(), input,
+                    static_cast<std::size_t>(input_size) * sizeof(float));
+    }
+
+    // Alternate between buf_a (current input) and buf_b (current output).
+    float* cur_in  = ws_buf_a_.data();
+    float* cur_out = ws_buf_b_.data();
+
+    for (std::size_t li = 0; li < num_connections; ++li) {
         const auto& p = params_[li];
         const auto out_sz = static_cast<std::size_t>(p.fan_out);
         const auto in_sz  = static_cast<std::size_t>(p.fan_in);
-
-        std::vector<float> next(out_sz);
 
         for (std::size_t o = 0; o < out_sz; ++o) {
             float sum = p.biases[o];
             const float* row = p.weights.data() + o * in_sz;
             for (std::size_t j = 0; j < in_sz; ++j) {
-                sum += row[j] * act[j];
+                sum += row[j] * cur_in[j];
             }
-            next[o] = sum;
+            cur_out[o] = sum;
+        }
+
+        // Cache pre-activations (z values) before applying activation function.
+        if (cache_activations) {
+            std::memcpy(ws_pre_acts_[li].data(), cur_out, out_sz * sizeof(float));
         }
 
         // Activation: ReLU for hidden layers, linear for the output layer.
-        const bool is_output = (li == num_layers - 1);
+        const bool is_output = (li == num_connections - 1);
         if (!is_output) {
-            for (auto& v : next) {
-                v = std::max(v, 0.0f);
+            for (std::size_t i = 0; i < out_sz; ++i) {
+                cur_out[i] = std::max(cur_out[i], 0.0f);
             }
         }
 
-        act = std::move(next);
+        // Cache activations if requested.
+        if (cache_activations) {
+            std::memcpy(ws_activations_[li + 1].data(), cur_out, out_sz * sizeof(float));
+        }
+
+        // Swap buffers: output becomes input for next layer.
+        std::swap(cur_in, cur_out);
     }
 
-    return act;
+    // After the loop, cur_in points to the final output (due to swap after last layer).
+    // If the number of layers is even, result is in buf_a; if odd, in buf_b.
+    // We always want the result accessible from ws_buf_a_ for the return path.
+    if (cur_in != ws_buf_a_.data()) {
+        const auto out_sz = static_cast<std::size_t>(layer_sizes_.back());
+        std::memcpy(ws_buf_a_.data(), cur_in, out_sz * sizeof(float));
+    }
 }
 
 // ---------------------------------------------------------------------------
-// Backpropagation (single-sample SGD with gradient clipping)
+// Forward pass (public API)
+// ---------------------------------------------------------------------------
+
+std::vector<float> NeuralNet::forward(const std::vector<float>& input) const
+{
+    assert(static_cast<int>(input.size()) == layer_sizes_.front());
+    forward_impl(input.data(), static_cast<int>(input.size()), true);
+
+    const auto out_sz = static_cast<std::size_t>(layer_sizes_.back());
+    return std::vector<float>(ws_buf_a_.data(), ws_buf_a_.data() + out_sz);
+}
+
+std::vector<float> NeuralNet::forward(const float* data, int size) const
+{
+    forward_impl(data, size, true);
+
+    const auto out_sz = static_cast<std::size_t>(layer_sizes_.back());
+    return std::vector<float>(ws_buf_a_.data(), ws_buf_a_.data() + out_sz);
+}
+
+int NeuralNet::forward_to(const float* data, int size, float* out_buf) const
+{
+    forward_impl(data, size, true);
+
+    const int out_sz = layer_sizes_.back();
+    std::memcpy(out_buf, ws_buf_a_.data(), static_cast<std::size_t>(out_sz) * sizeof(float));
+    return out_sz;
+}
+
+// ---------------------------------------------------------------------------
+// Backpropagation (single-sample, Adam optimizer, gradient clipping)
 // ---------------------------------------------------------------------------
 
 void NeuralNet::backprop(const std::vector<float>& input,
@@ -122,19 +220,17 @@ void NeuralNet::backprop(const std::vector<float>& input,
     // ------ Forward pass (cache pre-activations and activations) ----------
 
     // activations[0] = input,  activations[i+1] = output of layer i
-    std::vector<std::vector<float>> activations(num_connections + 1);
-    // pre_activations[i] = z for connection i (before activation)
-    std::vector<std::vector<float>> pre_acts(num_connections);
-
-    activations[0] = input;
+    // Reuse ws_activations_ for activations.
+    std::memcpy(ws_activations_[0].data(), input.data(),
+                input.size() * sizeof(float));
 
     for (std::size_t li = 0; li < num_connections; ++li) {
         const auto& p = params_[li];
         const auto out_sz = static_cast<std::size_t>(p.fan_out);
         const auto in_sz  = static_cast<std::size_t>(p.fan_in);
 
-        std::vector<float> z(out_sz);
-        const auto& prev = activations[li];
+        const float* prev = ws_activations_[li].data();
+        float* z = bp_pre_acts_[li].data();
 
         for (std::size_t o = 0; o < out_sz; ++o) {
             float sum = p.biases[o];
@@ -145,38 +241,54 @@ void NeuralNet::backprop(const std::vector<float>& input,
             z[o] = sum;
         }
 
-        pre_acts[li] = z;
-
-        // Apply activation.
+        // Apply activation and store in ws_activations_[li+1].
+        float* act_out = ws_activations_[li + 1].data();
         const bool is_output = (li == num_connections - 1);
         if (!is_output) {
-            for (auto& v : z) {
-                v = std::max(v, 0.0f);
+            for (std::size_t i = 0; i < out_sz; ++i) {
+                act_out[i] = std::max(z[i], 0.0f);
             }
+        } else {
+            std::memcpy(act_out, z, out_sz * sizeof(float));
         }
-        activations[li + 1] = std::move(z);
     }
+
+    // Delegate to the shared backprop implementation.
+    backprop_impl(ws_activations_, target, learning_rate);
+}
+
+void NeuralNet::backprop_from_cached(const std::vector<std::vector<float>>& cached_activations,
+                                     const std::vector<float>& target,
+                                     float learning_rate)
+{
+    assert(cached_activations.size() == layer_sizes_.size());
+    assert(static_cast<int>(target.size()) == layer_sizes_.back());
+
+    // Use the pre-activations that were cached during the forward pass that
+    // produced these activations.  This eliminates the GEMV recomputation that
+    // was the original bottleneck.
+    const auto num_connections = params_.size();
+    for (std::size_t li = 0; li < num_connections; ++li) {
+        std::memcpy(bp_pre_acts_[li].data(), ws_pre_acts_[li].data(),
+                    ws_pre_acts_[li].size() * sizeof(float));
+    }
+
+    backprop_impl(cached_activations, target, learning_rate);
+}
+
+void NeuralNet::backprop_impl(const std::vector<std::vector<float>>& activations,
+                              const std::vector<float>& target,
+                              float learning_rate)
+{
+    const auto num_connections = params_.size();
 
     // ------ Backward pass -------------------------------------------------
 
-    // Per-layer weight and bias gradients (same layout as params_).
-    struct LayerGrad {
-        std::vector<float> dw;  // same size as weights
-        std::vector<float> db;  // same size as biases
-    };
-    std::vector<LayerGrad> grads(num_connections);
-
-    // delta for current layer (propagated backwards).
-    std::vector<float> delta;
-
     // Output layer delta: dL/dz = (output - target) for MSE loss.
-    {
-        const auto& output = activations.back();
-        const auto sz = output.size();
-        delta.resize(sz);
-        for (std::size_t i = 0; i < sz; ++i) {
-            delta[i] = output[i] - target[i];
-        }
+    const auto& output = activations.back();
+    const auto out_dim = static_cast<std::size_t>(layer_sizes_.back());
+    for (std::size_t i = 0; i < out_dim; ++i) {
+        bp_delta_[i] = output[i] - target[i];
     }
 
     // Walk layers from output towards input.
@@ -185,45 +297,52 @@ void NeuralNet::backprop(const std::vector<float>& input,
         const auto out_sz = static_cast<std::size_t>(p.fan_out);
         const auto in_sz  = static_cast<std::size_t>(p.fan_in);
 
-        auto& g = grads[li];
-        g.dw.resize(p.weights.size());
-        g.db.resize(p.biases.size());
-
-        const auto& act_prev = activations[li];
+        auto& g = bp_grads_[li];
+        const float* act_prev = activations[li].data();
 
         // Compute weight and bias gradients for this layer.
         for (std::size_t o = 0; o < out_sz; ++o) {
-            g.db[o] = delta[o];
+            g.db[o] = bp_delta_[o];
             float* dw_row = g.dw.data() + o * in_sz;
+            const float d = bp_delta_[o];
             for (std::size_t j = 0; j < in_sz; ++j) {
-                dw_row[j] = delta[o] * act_prev[j];
+                dw_row[j] = d * act_prev[j];
             }
         }
 
         // Propagate delta to previous layer (skip if we reached the input).
         if (li > 0) {
-            std::vector<float> prev_delta(in_sz, 0.0f);
+            // Zero out prev_delta.
+            std::memset(bp_prev_delta_.data(), 0, in_sz * sizeof(float));
+
             for (std::size_t o = 0; o < out_sz; ++o) {
                 const float* w_row = p.weights.data() + o * in_sz;
+                const float d = bp_delta_[o];
                 for (std::size_t j = 0; j < in_sz; ++j) {
-                    prev_delta[j] += w_row[j] * delta[o];
+                    bp_prev_delta_[j] += w_row[j] * d;
                 }
             }
             // Element-wise multiply by ReLU derivative of the pre-activation.
-            const auto& z = pre_acts[li - 1];
+            const float* z = bp_pre_acts_[li - 1].data();
             for (std::size_t j = 0; j < in_sz; ++j) {
-                prev_delta[j] *= (z[j] > 0.0f) ? 1.0f : 0.0f;
+                bp_prev_delta_[j] *= (z[j] > 0.0f) ? 1.0f : 0.0f;
             }
-            delta = std::move(prev_delta);
+            // Swap delta and prev_delta (avoid copy).
+            std::swap(bp_delta_, bp_prev_delta_);
         }
     }
 
     // ------ Gradient clipping (global L2 norm, max 1.0) -------------------
 
     float global_norm_sq = 0.0f;
-    for (const auto& g : grads) {
-        for (float v : g.dw) global_norm_sq += v * v;
-        for (float v : g.db) global_norm_sq += v * v;
+    for (std::size_t li = 0; li < num_connections; ++li) {
+        const auto& g = bp_grads_[li];
+        for (std::size_t i = 0; i < g.dw.size(); ++i) {
+            global_norm_sq += g.dw[i] * g.dw[i];
+        }
+        for (std::size_t i = 0; i < g.db.size(); ++i) {
+            global_norm_sq += g.db[i] * g.db[i];
+        }
     }
     const float global_norm = std::sqrt(global_norm_sq);
     constexpr float kMaxNorm = 1.0f;
@@ -245,7 +364,7 @@ void NeuralNet::backprop(const std::vector<float>& input,
 
     for (std::size_t li = 0; li < num_connections; ++li) {
         auto& p = params_[li];
-        const auto& g = grads[li];
+        const auto& g = bp_grads_[li];
 
         for (std::size_t i = 0; i < p.weights.size(); ++i) {
             float grad = clip_coeff * g.dw[i];
@@ -304,7 +423,7 @@ void NeuralNet::soft_update(const NeuralNet& source, float tau)
 }
 
 // ---------------------------------------------------------------------------
-// Serialisation (binary)
+// Serialisation (binary) -- format unchanged for compatibility
 // ---------------------------------------------------------------------------
 
 void NeuralNet::save(std::ostream& os) const

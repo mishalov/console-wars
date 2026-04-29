@@ -4,7 +4,9 @@
 #include "neural_net.hpp"
 #include "replay_buffer.hpp"
 
+#include <array>
 #include <cstdint>
+#include <iosfwd>
 #include <random>
 #include <string>
 #include <vector>
@@ -14,9 +16,16 @@
 /// Uses two NeuralNet instances (online + target) and an experience replay
 /// buffer.  The online network selects actions via epsilon-greedy; the
 /// target network is used for value estimation (Double DQN).
+///
+/// Performance optimizations:
+/// - Pre-allocated neural net workspace buffers (zero heap allocs per forward/backprop)
+/// - Cached forward pass results to eliminate redundant computations in train_batch
+/// - std::array-based Transition to eliminate replay buffer heap fragmentation
+/// - Precomputed gamma power lookup table
+/// - Batch sorted by buffer index for cache locality
 class DqnBrain : public BotBrain {
 public:
-    DqnBrain();
+    explicit DqnBrain(bool inference_mode = false);
 
     InputAction decide(const BotObservation& obs,
                        const std::vector<InputAction>& valid_actions) override;
@@ -28,6 +37,7 @@ public:
     void on_game_end() override;
 
     void save(const std::string& path) const override;
+    void save(std::ostream& os) const override;  // stream overload for async serialization
     void load(const std::string& path) override;
 
     // --- Accessors (useful for diagnostics / tests) -------------------------
@@ -66,7 +76,21 @@ private:
     static constexpr float    kBetaEnd         = 1.0f;
     static constexpr uint32_t kBetaAnnealSteps = 100000;
 
+    // N-step return: max n_steps value (from bot_player.hpp kNSteps = 5)
+    static constexpr int kMaxNSteps = 5;
+
+    // Precomputed gamma^n for n = 0..kMaxNSteps (avoids std::pow per sample).
+    static constexpr std::array<float, kMaxNSteps + 1> kGammaPow = {{
+        1.0f,                                   // gamma^0
+        kGamma,                                 // gamma^1
+        kGamma * kGamma,                        // gamma^2
+        kGamma * kGamma * kGamma,               // gamma^3
+        kGamma * kGamma * kGamma * kGamma,      // gamma^4
+        kGamma * kGamma * kGamma * kGamma * kGamma  // gamma^5
+    }};
+
     // --- RNG ----------------------------------------------------------------
+    const bool   inference_mode_ = false;
     std::mt19937 rng_{std::random_device{}()};
 
     // --- Helpers ------------------------------------------------------------

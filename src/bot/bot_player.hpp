@@ -7,9 +7,13 @@
 #include "../input.hpp"
 #include "../types.hpp"
 
+#include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 /// High-level orchestrator that drives a bot within the game loop.
@@ -24,7 +28,14 @@
 ///   bot.save();
 class BotPlayer {
 public:
-    BotPlayer(PlayerId id, const std::string& data_dir);
+    BotPlayer(PlayerId id, const std::string& data_dir, bool inference_mode = false);
+    ~BotPlayer();
+
+    // Non-copyable, non-movable (owns mutex + thread)
+    BotPlayer(const BotPlayer&) = delete;
+    BotPlayer& operator=(const BotPlayer&) = delete;
+    BotPlayer(BotPlayer&&) = delete;
+    BotPlayer& operator=(BotPlayer&&) = delete;
 
     /// Called *before* GameState::tick().
     /// Observes the world, feeds reward to the brain, decides an action,
@@ -44,6 +55,7 @@ public:
 private:
     PlayerId                   id_;
     std::string                data_dir_;
+    bool                       inference_mode_ = false;
     std::unique_ptr<BotBrain>  brain_;
 
     BotObservation             prev_obs_{};
@@ -73,4 +85,18 @@ private:
 
     /// Build the list of actions the bot is allowed to take right now.
     std::vector<InputAction> get_valid_actions(const GameState& state) const;
+
+    // --- Async save infrastructure ---
+    static constexpr int kSaveEveryNGames = 10;  // save every Nth death
+    int death_count_ = 0;
+
+    // Background writer thread
+    mutable std::mutex       save_mutex_;
+    mutable std::condition_variable save_cv_;
+    mutable std::string      save_pending_;  // serialized data awaiting write
+    mutable std::atomic<bool> save_shutdown_{false};
+    std::thread              save_thread_;
+
+    void save_async() const;
+    void save_thread_func() const;
 };

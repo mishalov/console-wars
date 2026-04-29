@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
@@ -8,15 +9,21 @@
 #include <stdexcept>
 #include <vector>
 
+#include "bot_observation.hpp"
+
 namespace bot {
 
+// State dimension fixed at BotObservation::SIZE (92).
+// Using std::array eliminates ~200K heap allocations in the replay buffer.
+static constexpr int kStateDim = BotObservation::SIZE;
+
 struct Transition {
-    std::vector<float> state;       // observation vector
-    int action = 0;                 // action index (0-10)
+    std::array<float, kStateDim> state{};       // observation vector (92 floats)
+    int action = 0;                              // action index (0-9)
     float reward = 0.0f;
-    std::vector<float> next_state;  // next observation vector
-    bool done = false;              // episode terminal?
-    int n_steps = 1;                // number of steps in this n-step return
+    std::array<float, kStateDim> next_state{};  // next observation vector (92 floats)
+    bool done = false;                           // episode terminal?
+    int n_steps = 1;                             // number of steps in this n-step return
 };
 
 // Sum-tree for O(log N) proportional sampling and O(log N) priority update.

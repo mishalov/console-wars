@@ -1,30 +1,45 @@
 #include "bot/bot_player.hpp"
 #include "bot/dqn_brain.hpp"
 
+#include <cstdio>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 // ============================================================================
-// Construction
+// Construction / Destruction
 // ============================================================================
 
-BotPlayer::BotPlayer(PlayerId id, const std::string& data_dir)
+BotPlayer::BotPlayer(PlayerId id, const std::string& data_dir, bool inference_mode)
     : id_(id)
     , data_dir_(data_dir)
-    , brain_(std::make_unique<DqnBrain>())
+    , inference_mode_(inference_mode)
+    , brain_(std::make_unique<DqnBrain>(inference_mode))
+    , save_thread_(inference_mode ? std::thread{} : std::thread(&BotPlayer::save_thread_func, this))
 {
     // Attempt to restore a previously saved brain.
     try {
         brain_->load(data_dir_ + "/bot_brain.bin");
     } catch (const std::runtime_error& e) {
+        if (inference_mode_) {
+            throw std::runtime_error(
+                "Cannot run in inference mode: " + std::string(e.what()));
+        }
         std::string msg = e.what();
-        // "cannot open" means first run — expected, stay silent.
-        // Anything else (bad magic, topology mismatch, truncation) is worth
-        // reporting so the user knows the bot started fresh unexpectedly.
         if (msg.find("cannot open") == std::string::npos) {
             std::cerr << "Warning: bot brain load failed (" << msg
                       << ") — starting fresh\n";
         }
+    }
+}
+
+BotPlayer::~BotPlayer()
+{
+    save_shutdown_.store(true, std::memory_order_release);
+    save_cv_.notify_one();
+    if (save_thread_.joinable()) {
+        save_thread_.join();
     }
 }
 
@@ -52,8 +67,8 @@ void BotPlayer::pre_tick(GameState& state)
     BotObservation curr_obs = observe(state, id_, prev_self_pos_, prev_enemy_pos_, prev_enemy_id_);
 
     // If we have a previous observation, compute the reward and accumulate
-    // in the n-step buffer.
-    if (has_prev_) {
+    // in the n-step buffer. (Skipped in inference mode — no learning.)
+    if (!inference_mode_ && has_prev_) {
         float reward = compute_reward(prev_obs_, curr_obs);
         nstep_buffer_.push_back({prev_obs_, last_action_, reward});
 
@@ -106,33 +121,36 @@ void BotPlayer::post_tick(const GameState& state)
     // Detect death transition: was alive (has_prev_ implies alive on prev
     // tick), and now dead.
     if (has_prev_ && currently_dead) {
-        // Get the actual death-state observation instead of faking it.
-        BotObservation terminal_obs = observe(state, id_);
-        if (terminal_obs.pos == Vec2{0,0} && !terminal_obs.alive) {
-            // Pudge was removed from state, use prev obs as fallback
-            terminal_obs = prev_obs_;
-            terminal_obs.alive = false;
-            terminal_obs.features[BotObservation::kAlive] = 0.0f;
+        if (!inference_mode_) {
+            // Get the actual death-state observation instead of faking it.
+            BotObservation terminal_obs = observe(state, id_);
+            if (terminal_obs.pos == Vec2{0,0} && !terminal_obs.alive) {
+                // Pudge was removed from state, use prev obs as fallback
+                terminal_obs = prev_obs_;
+                terminal_obs.alive = false;
+                terminal_obs.features[BotObservation::kAlive] = 0.0f;
+            }
+            float reward = compute_reward(prev_obs_, terminal_obs);
+
+            // Add the terminal step and flush all remaining n-step transitions
+            nstep_buffer_.push_back({prev_obs_, last_action_, reward});
+            flush_all_nstep(terminal_obs);
+
+            brain_->on_game_end();
+
+            // Throttled async save: only every Nth death to avoid I/O spikes
+            ++death_count_;
+            if (death_count_ >= kSaveEveryNGames) {
+                death_count_ = 0;
+                save_async();
+            }
         }
-        float reward = compute_reward(prev_obs_, terminal_obs);
 
-        // Add the terminal step and flush all remaining n-step transitions
-        nstep_buffer_.push_back({prev_obs_, last_action_, reward});
-        flush_all_nstep(terminal_obs);
-
-        brain_->on_game_end();
         has_prev_ = false;
         nstep_buffer_.clear();
         prev_self_pos_  = {};
         prev_enemy_pos_ = {};
         prev_enemy_id_  = INVALID_PLAYER;
-
-        // Periodic auto-save after every game end
-        try {
-            save();
-        } catch (const std::runtime_error&) {
-            // Non-fatal — best effort persistence
-        }
     }
 
     // Detect respawn transition: was dead, now alive.
@@ -232,10 +250,63 @@ std::vector<InputAction> BotPlayer::get_valid_actions(const GameState& state) co
 }
 
 // ============================================================================
-// save()
+// save() — synchronous (for graceful shutdown)
 // ============================================================================
 
 void BotPlayer::save() const
 {
+    if (inference_mode_) return;
     brain_->save(data_dir_ + "/bot_brain.bin");
+}
+
+// ============================================================================
+// Async save infrastructure
+// ============================================================================
+
+void BotPlayer::save_async() const
+{
+    // Serialize into memory buffer (fast, no I/O)
+    std::ostringstream oss(std::ios::binary);
+    brain_->save(oss);
+
+    // Hand off to background writer thread
+    {
+        std::lock_guard<std::mutex> lock(save_mutex_);
+        save_pending_ = oss.str();
+    }
+    save_cv_.notify_one();
+}
+
+void BotPlayer::save_thread_func() const
+{
+    while (true) {
+        std::string data;
+        {
+            std::unique_lock<std::mutex> lock(save_mutex_);
+            save_cv_.wait(lock, [this] {
+                return !save_pending_.empty() ||
+                       save_shutdown_.load(std::memory_order_acquire);
+            });
+
+            if (save_shutdown_.load(std::memory_order_acquire) &&
+                save_pending_.empty()) {
+                return;
+            }
+            data = std::move(save_pending_);
+            save_pending_.clear();
+        }
+
+        // Write to temp file + rename for atomicity
+        std::string path = data_dir_ + "/bot_brain.bin";
+        std::string tmp_path = path + ".tmp";
+
+        std::ofstream ofs(tmp_path, std::ios::binary);
+        if (ofs) {
+            ofs.write(data.data(), static_cast<std::streamsize>(data.size()));
+            ofs.close();
+            if (ofs) {
+                std::rename(tmp_path.c_str(), path.c_str());
+            }
+        }
+    }
 }
