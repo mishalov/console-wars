@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -130,6 +131,25 @@ void Server::accept_new_client() {
     }
 
     set_nonblocking(fd);
+
+    // Disable Nagle's algorithm for low-latency input/frame delivery
+    int nodelay = 1;
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+
+    // Enable TCP keepalive to detect dead connections behind NAT/proxy
+    int keepalive = 1;
+    setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
+#ifdef __linux__
+    int idle = 30;
+    int interval = 10;
+    int count = 3;
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &interval, sizeof(interval));
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &count, sizeof(count));
+#elif defined(__APPLE__)
+    int idle = 30;
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPALIVE, &idle, sizeof(idle));
+#endif
 
     // Assign spawn point and create pudge
     Vec2 spawn = state_.next_spawn_point();
