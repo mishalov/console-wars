@@ -12,7 +12,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release . && make -j$(nproc)
 # Stage 2: Runtime
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 tini && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -29,6 +29,4 @@ ENV NO_TRAIN=0
 
 EXPOSE 7777
 
-STOPSIGNAL SIGTERM
-ENTRYPOINT ["tini", "--"]
 CMD ["/app/console-wars"]

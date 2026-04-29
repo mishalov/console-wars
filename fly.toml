@@ -1,46 +1,23 @@
-# Fly.io configuration for Console Wars TCP game server
-app = "console-wars"
-primary_region = "fra"
+# fly.toml app configuration file generated for console-wars on 2026-04-29T10:47:35Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'console-wars'
+primary_region = 'ams'
 
 [build]
-  dockerfile = "Dockerfile"
 
-[env]
-  PORT = "7777"
-  BASE_DIR = "/app"
-  DATA_DIR = "/app/data"
-  BOT_COUNT = "2"
-  NO_TRAIN = "1"
-
-[[mounts]]
-  source = "game_data"
-  destination = "/app/data"
-
-[restart]
-  policy = "always"
-  max_retries = 5
-
-[[services]]
-  protocol = "tcp"
-  internal_port = 7777
-  auto_stop_machines = "off"
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 1
-
-  [[services.ports]]
-    port = 2323
-
-  [[services.tcp_checks]]
-    grace_period = "15s"
-    interval = "30s"
-    timeout = "5s"
-
-  [services.concurrency]
-    type = "connections"
-    hard_limit = 20
-    soft_limit = 16
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-  memory = "512mb"
-  cpu_kind = "shared"
+  memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 256
