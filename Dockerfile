@@ -16,7 +16,8 @@ RUN apk add --no-cache libstdc++ libgcc
 
 WORKDIR /app
 
-COPY --from=builder /build/console-wars ./exec
+COPY --from=builder /build/console-wars /app/console-wars
+RUN chmod +x /app/console-wars
 COPY maps/ maps/
 COPY data/bot_brain.bin assets/bot_brain.bin
 
@@ -29,4 +30,4 @@ ENV NO_TRAIN=0
 
 EXPOSE 7777
 
-CMD ["./exec"]
+CMD ["/app/console-wars"]
