@@ -1,0 +1,6 @@
+build/
+.git/
+.cache/
+*.o
+data/*
+!data/bot_brain.bin

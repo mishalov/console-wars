@@ -66,12 +66,31 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Environment variable overrides (for containerized deployment)
+    if (const char* env_port = std::getenv("PORT")) {
+        port = std::atoi(env_port);
+    }
+    if (const char* env_bots = std::getenv("BOT_COUNT")) {
+        num_bots = std::atoi(env_bots);
+    }
+    if (const char* env_no_train = std::getenv("NO_TRAIN")) {
+        if (std::strcmp(env_no_train, "1") == 0) {
+            no_train = true;
+        }
+    }
+
     // Resolve project root: executable is in build/, maps/ is one level up
-    std::string base_dir = exe_dir(argv[0]) + "/..";
+    std::string base_dir;
+    if (const char* env_base = std::getenv("BASE_DIR")) {
+        base_dir = env_base;
+    } else {
+        base_dir = exe_dir(argv[0]) + "/..";
+    }
 
     Server server;
 
     signal(SIGINT, handle_sigint);
+    signal(SIGTERM, handle_sigint);
 
     if (!server.init(port, base_dir, num_bots, no_train)) {
         std::cerr << "Failed to initialize server\n";

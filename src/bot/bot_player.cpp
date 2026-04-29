@@ -256,6 +256,13 @@ std::vector<InputAction> BotPlayer::get_valid_actions(const GameState& state) co
 void BotPlayer::save() const
 {
     if (inference_mode_) return;
+    // Shut down the background writer and wait for it to finish any in-flight
+    // write, so we don't race on the output file.
+    save_shutdown_.store(true, std::memory_order_release);
+    save_cv_.notify_one();
+    if (save_thread_.joinable()) {
+        save_thread_.join();
+    }
     brain_->save(data_dir_ + "/bot_brain.bin");
 }
 

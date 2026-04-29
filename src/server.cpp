@@ -4,7 +4,10 @@
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <poll.h>
 #include <sys/socket.h>
@@ -62,12 +65,38 @@ bool Server::init(int port, const std::string& base_dir, int num_bots, bool no_t
     }
 
     // Spawn bot players
-    std::string data_dir = base_dir + "/data";
+    std::string data_dir;
+    if (const char* env_data = std::getenv("DATA_DIR")) {
+        data_dir = env_data;
+    } else {
+        data_dir = base_dir + "/data";
+    }
     if (num_bots > 0) {
         if (mkdir(data_dir.c_str(), 0755) != 0 && errno != EEXIST) {
             std::cerr << "Warning: cannot create data directory '"
                       << data_dir << "': " << strerror(errno)
                       << " — bot brain persistence disabled\n";
+        }
+
+        // Seed volume with bundled brain on first deploy
+        std::string brain_path = data_dir + "/bot_brain.bin";
+        std::string bundled_path = base_dir + "/assets/bot_brain.bin";
+        {
+            struct stat st;
+            if (stat(brain_path.c_str(), &st) != 0 && stat(bundled_path.c_str(), &st) == 0) {
+                std::ifstream src(bundled_path, std::ios::binary);
+                std::ofstream dst(brain_path, std::ios::binary);
+                if (src && dst) {
+                    dst << src.rdbuf();
+                    dst.close();
+                    if (dst) {
+                        std::cout << "Seeded bot brain from bundled snapshot\n";
+                    } else {
+                        std::cerr << "Warning: failed to write seeded brain\n";
+                        std::remove(brain_path.c_str());
+                    }
+                }
+            }
         }
     }
     for (int i = 0; i < num_bots; ++i) {
