@@ -276,6 +276,26 @@ void NeuralNet::backprop_from_cached(const std::vector<std::vector<float>>& cach
     backprop_impl(cached_activations, target, learning_rate);
 }
 
+void NeuralNet::backprop_from_cached(const std::vector<std::vector<float>>& cached_activations,
+                                     const std::vector<std::vector<float>>& pre_activations,
+                                     const std::vector<float>& target,
+                                     float learning_rate)
+{
+    assert(cached_activations.size() == layer_sizes_.size());
+    assert(pre_activations.size() == params_.size());
+    assert(static_cast<int>(target.size()) == layer_sizes_.back());
+
+    // Copy the caller-supplied pre-activations into bp_pre_acts_ for use by backprop_impl.
+    const auto num_connections = params_.size();
+    for (std::size_t li = 0; li < num_connections; ++li) {
+        assert(pre_activations[li].size() == bp_pre_acts_[li].size());
+        std::memcpy(bp_pre_acts_[li].data(), pre_activations[li].data(),
+                    pre_activations[li].size() * sizeof(float));
+    }
+
+    backprop_impl(cached_activations, target, learning_rate);
+}
+
 void NeuralNet::backprop_impl(const std::vector<std::vector<float>>& activations,
                               const std::vector<float>& target,
                               float learning_rate)

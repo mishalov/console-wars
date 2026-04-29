@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <climits>
 #include <stdexcept>
 
 // ============================================================================
@@ -256,6 +257,8 @@ std::vector<InputAction> BotPlayer::get_valid_actions(const GameState& state) co
 void BotPlayer::save() const
 {
     if (inference_mode_) return;
+    // Mark as finalized so save_async() becomes a no-op.
+    save_finalized_.store(true, std::memory_order_release);
     // Shut down the background writer and wait for it to finish any in-flight
     // write, so we don't race on the output file.
     save_shutdown_.store(true, std::memory_order_release);
@@ -272,6 +275,9 @@ void BotPlayer::save() const
 
 void BotPlayer::save_async() const
 {
+    // No-op if save() has already been called (finalizing).
+    if (save_finalized_.load(std::memory_order_acquire)) return;
+
     // Serialize into memory buffer (fast, no I/O)
     std::ostringstream oss(std::ios::binary);
     brain_->save(oss);

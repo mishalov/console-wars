@@ -45,7 +45,19 @@ public:
     // `cached_activations` must contain (num_layers) vectors:
     //   [0] = input, [1] = hidden1 output, ..., [N-1] = network output.
     // `target` is the desired output (same as in backprop()).
+    // NOTE: This overload reads pre-activations from the internal ws_pre_acts_ cache.
+    // Only correct if no other forward pass has been issued since the forward() call
+    // that produced these cached_activations.
     void backprop_from_cached(const std::vector<std::vector<float>>& cached_activations,
+                              const std::vector<float>& target,
+                              float learning_rate);
+
+    // Backprop from pre-computed activations AND explicit pre-activations.
+    // Use this overload when multiple forward passes have been interleaved and the
+    // internal ws_pre_acts_ cache no longer corresponds to `cached_activations`.
+    // `pre_activations` must contain (num_layers - 1) vectors (one per connection).
+    void backprop_from_cached(const std::vector<std::vector<float>>& cached_activations,
+                              const std::vector<std::vector<float>>& pre_activations,
                               const std::vector<float>& target,
                               float learning_rate);
 
@@ -69,6 +81,13 @@ public:
     // Contains (num_layers) entries: [0]=input copy, [1..N-1]=layer outputs.
     [[nodiscard]] const std::vector<std::vector<float>>& cached_activations() const noexcept {
         return ws_activations_;
+    }
+
+    // Access cached pre-activations (z values before activation function) from
+    // the most recent forward pass. Valid only after calling forward() or forward_to().
+    // Contains (num_layers - 1) entries: ws_pre_acts_[i] = z for connection i.
+    [[nodiscard]] const std::vector<std::vector<float>>& cached_pre_activations() const noexcept {
+        return ws_pre_acts_;
     }
 
 private:

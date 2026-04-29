@@ -95,6 +95,7 @@ private:
     mutable std::condition_variable save_cv_;
     mutable std::string      save_pending_;  // serialized data awaiting write
     mutable std::atomic<bool> save_shutdown_{false};
+    mutable std::atomic<bool> save_finalized_{false};  // prevents save_async after save()
     mutable std::thread       save_thread_;
 
     void save_async() const;

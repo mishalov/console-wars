@@ -177,6 +177,7 @@ void DqnBrain::train_batch()
     // Cache: current_q values and their activations for backprop_from_cached.
     std::vector<std::vector<float>> cached_current_q(batch_sz);
     std::vector<std::vector<std::vector<float>>> cached_activations(batch_sz);
+    std::vector<std::vector<std::vector<float>>> cached_pre_activations(batch_sz);
 
     for (std::size_t i = 0; i < batch_sz; ++i) {
         const auto& t = *batch[i].transition;
@@ -213,6 +214,7 @@ void DqnBrain::train_batch()
         // Forward pass on current state -- cache the result AND the internal activations.
         cached_current_q[i] = online_.forward(t.state.data(), kInputDim);
         cached_activations[i] = online_.cached_activations();
+        cached_pre_activations[i] = online_.cached_pre_activations();
 
         td_errors[i] = y - cached_current_q[i][static_cast<std::size_t>(t.action)];
     }
@@ -234,7 +236,9 @@ void DqnBrain::train_batch()
 
         // Use backprop_from_cached to avoid the redundant forward pass inside backprop
         // (eliminates pass #5 from original).
-        online_.backprop_from_cached(cached_activations[i], current_q, learning_rate_);
+        // Pass explicit pre-activations since ws_pre_acts_ only holds the LAST forward's values.
+        online_.backprop_from_cached(cached_activations[i], cached_pre_activations[i],
+                                     current_q, learning_rate_);
 
         // Update priority in the sum-tree.
         buffer_.update_priority(batch[i].index, td_errors[i]);
